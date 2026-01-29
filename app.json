@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "Green Hands Fleet",
+    "slug": "Green Hands Fleet",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/natively-dark.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/natively-dark.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.Natively",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/natively-dark.png",
+        "backgroundColor": "#000000"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.anonymous.Natively"
+    },
+    "web": {
+      "favicon": "./assets/images/final_quest_240x240.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-router",
+      "expo-web-browser",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "GREEN HANDS a besoin d'acc\u00e9der \u00e0 votre position pour suivre vos shifts.",
+          "locationWhenInUsePermission": "GREEN HANDS a besoin d'acc\u00e9der \u00e0 votre position pendant l'utilisation de l'app."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "GREEN HANDS a besoin d'acc\u00e9der \u00e0 votre cam\u00e9ra pour les inspections."
+        }
+      ]
+    ],
+    "scheme": "Green Hands Fleet",
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "backendUrl": "https://rpc6sxjj85p45v32bk69yeg2mmejz38r.app.specular.dev"
+    }
+  }
+}
