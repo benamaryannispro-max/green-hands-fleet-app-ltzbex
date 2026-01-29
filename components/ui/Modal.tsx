@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { ReactNode } from 'react';
 import {
   View,
   Text,
@@ -7,14 +7,17 @@ import {
   TouchableOpacity,
   StyleSheet,
   TouchableWithoutFeedback,
+  ScrollView,
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
+import { IconSymbol } from '@/components/IconSymbol';
 
 interface ModalProps {
   visible: boolean;
   onClose: () => void;
   title: string;
-  message: string;
+  message?: string;
+  children?: ReactNode;
   type?: 'info' | 'success' | 'error' | 'warning' | 'confirm';
   confirmText?: string;
   cancelText?: string;
@@ -26,12 +29,14 @@ export default function Modal({
   onClose,
   title,
   message,
+  children,
   type = 'info',
   confirmText = 'OK',
   cancelText = 'Annuler',
   onConfirm,
 }: ModalProps) {
   const isConfirm = type === 'confirm';
+  const hasChildren = !!children;
   
   const getIconColor = () => {
     switch (type) {
@@ -53,6 +58,42 @@ export default function Modal({
     onClose();
   };
 
+  // If children are provided, render a custom modal layout
+  if (hasChildren) {
+    return (
+      <RNModal
+        visible={visible}
+        transparent
+        animationType="slide"
+        onRequestClose={onClose}
+      >
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={styles.overlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.customModalContainer}>
+                <View style={styles.customHeader}>
+                  <Text style={styles.customTitle}>{title}</Text>
+                  <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                    <IconSymbol
+                      ios_icon_name="xmark"
+                      android_material_icon_name="close"
+                      size={24}
+                      color={colors.text}
+                    />
+                  </TouchableOpacity>
+                </View>
+                <ScrollView style={styles.customContent}>
+                  {children}
+                </ScrollView>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </RNModal>
+    );
+  }
+
+  // Default modal with message and buttons
   return (
     <RNModal
       visible={visible}
@@ -71,7 +112,7 @@ export default function Modal({
               </View>
               
               <Text style={styles.title}>{title}</Text>
-              <Text style={styles.message}>{message}</Text>
+              {message && <Text style={styles.message}>{message}</Text>}
 
               <View style={styles.buttonContainer}>
                 {isConfirm && (
@@ -112,6 +153,34 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     alignItems: 'center',
+  },
+  customModalContainer: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: '80%',
+    overflow: 'hidden',
+  },
+  customHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  customTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    flex: 1,
+  },
+  closeButton: {
+    padding: 4,
+  },
+  customContent: {
+    flex: 1,
   },
   iconContainer: {
     width: 60,

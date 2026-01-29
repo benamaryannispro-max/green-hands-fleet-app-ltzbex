@@ -1,11 +1,11 @@
 import "react-native-reanimated";
 import React, { useEffect } from "react";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { SystemBars } from "react-native-edge-to-edge";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useColorScheme } from "react-native";
+import { useColorScheme, View, ActivityIndicator } from "react-native";
 import { useNetworkState } from "expo-network";
 import {
   DarkTheme,
@@ -15,7 +15,8 @@ import {
 } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import { WidgetProvider } from "@/contexts/WidgetContext";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { colors } from "@/styles/commonStyles";
 // Note: Error logging is auto-initialized via index.ts import
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -24,6 +25,64 @@ SplashScreen.preventAutoHideAsync();
 export const unstable_settings = {
   initialRouteName: "(tabs)", // Ensure any route can link back to `/`
 };
+
+function RootLayoutNav() {
+  const { user, loading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return;
+
+    const inAuthGroup = segments[0] === 'login';
+
+    console.log('[RootLayout] Auth state:', { user: !!user, loading, inAuthGroup, segments });
+
+    if (!user && !inAuthGroup) {
+      // Redirect to login if not authenticated
+      console.log('[RootLayout] Redirecting to login');
+      router.replace('/login');
+    } else if (user && inAuthGroup) {
+      // Redirect to app if authenticated
+      console.log('[RootLayout] Redirecting to app');
+      router.replace('/');
+    }
+  }, [user, loading, segments]);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  return (
+    <Stack>
+      {/* Login screen */}
+      <Stack.Screen name="login" options={{ headerShown: false }} />
+      {/* Auth callback screens */}
+      <Stack.Screen name="auth-callback" options={{ headerShown: false }} />
+      <Stack.Screen name="auth-popup" options={{ headerShown: false }} />
+      {/* Main app with tabs */}
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      {/* Additional screens */}
+      <Stack.Screen name="alerts-center" options={{ headerShown: false }} />
+      <Stack.Screen name="vehicles" options={{ headerShown: false }} />
+      <Stack.Screen name="maintenance" options={{ headerShown: false }} />
+      <Stack.Screen name="reports" options={{ headerShown: false }} />
+      <Stack.Screen name="qr-scanner" options={{ headerShown: false }} />
+      <Stack.Screen name="driver-management" options={{ headerShown: false }} />
+      <Stack.Screen name="battery-record" options={{ headerShown: false }} />
+      <Stack.Screen name="inspection" options={{ headerShown: false }} />
+      <Stack.Screen name="driver-dashboard" options={{ headerShown: false }} />
+      <Stack.Screen name="leader-dashboard" options={{ headerShown: false }} />
+      <Stack.Screen name="fleet-map" options={{ headerShown: false }} />
+      {/* 404 */}
+      <Stack.Screen name="+not-found" />
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -84,15 +143,8 @@ export default function RootLayout() {
           <AuthProvider>
             <WidgetProvider>
               <GestureHandlerRootView>
-              <Stack>
-                {/* Login screen */}
-                <Stack.Screen name="login" options={{ headerShown: false }} />
-                {/* Main app with tabs */}
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                {/* 404 */}
-                <Stack.Screen name="+not-found" />
-              </Stack>
-              <SystemBars style={"auto"} />
+                <RootLayoutNav />
+                <SystemBars style={"auto"} />
               </GestureHandlerRootView>
             </WidgetProvider>
           </AuthProvider>

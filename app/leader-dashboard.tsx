@@ -60,17 +60,20 @@ export default function LeaderDashboardScreen() {
           </View>
 
           <View style={styles.menuGrid}>
-            <TouchableOpacity style={styles.menuCard}>
-              <View style={[styles.menuIconContainer, { backgroundColor: colors.primary }]}>
+            <TouchableOpacity 
+              style={styles.menuCard}
+              onPress={() => router.push('/alerts-center')}
+            >
+              <View style={[styles.menuIconContainer, { backgroundColor: colors.error }]}>
                 <IconSymbol
-                  ios_icon_name="book.fill"
-                  android_material_icon_name="book"
+                  ios_icon_name="bell.fill"
+                  android_material_icon_name="notifications"
                   size={32}
                   color="#FFFFFF"
                 />
               </View>
-              <Text style={styles.menuTitle}>Journal de bord</Text>
-              <Text style={styles.menuDescription}>Historique des shifts</Text>
+              <Text style={styles.menuTitle}>Centre d&apos;alertes</Text>
+              <Text style={styles.menuDescription}>Notifications</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -89,21 +92,27 @@ export default function LeaderDashboardScreen() {
               <Text style={styles.menuDescription}>Gérer les chauffeurs</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.menuCard}>
+            <TouchableOpacity 
+              style={styles.menuCard}
+              onPress={() => router.push('/vehicles')}
+            >
               <View style={[styles.menuIconContainer, { backgroundColor: colors.secondary }]}>
                 <IconSymbol
-                  ios_icon_name="qrcode"
-                  android_material_icon_name="qr-code-scanner"
+                  ios_icon_name="car.fill"
+                  android_material_icon_name="directions-car"
                   size={32}
                   color="#FFFFFF"
                 />
               </View>
-              <Text style={styles.menuTitle}>Scanner QR</Text>
-              <Text style={styles.menuDescription}>Véhicules</Text>
+              <Text style={styles.menuTitle}>Véhicules</Text>
+              <Text style={styles.menuDescription}>Gestion + QR</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.menuCard}>
-              <View style={[styles.menuIconContainer, { backgroundColor: colors.error }]}>
+            <TouchableOpacity 
+              style={styles.menuCard}
+              onPress={() => router.push('/maintenance')}
+            >
+              <View style={[styles.menuIconContainer, { backgroundColor: colors.warning }]}>
                 <IconSymbol
                   ios_icon_name="wrench.fill"
                   android_material_icon_name="build"
@@ -131,8 +140,11 @@ export default function LeaderDashboardScreen() {
               <Text style={styles.menuDescription}>Suivi en temps réel</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.menuCard}>
-              <View style={[styles.menuIconContainer, { backgroundColor: colors.warning }]}>
+            <TouchableOpacity 
+              style={styles.menuCard}
+              onPress={() => router.push('/reports')}
+            >
+              <View style={[styles.menuIconContainer, { backgroundColor: colors.accent }]}>
                 <IconSymbol
                   ios_icon_name="doc.text.fill"
                   android_material_icon_name="description"
