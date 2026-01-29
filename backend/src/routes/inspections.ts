@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { eq, and } from "drizzle-orm";
+import { randomUUID } from "crypto";
 import * as schema from "../db/schema.js";
 import type { App } from "../index.js";
 
@@ -100,6 +101,55 @@ export function register(app: App, fastify: FastifyInstance) {
         boosterBatterieComment: body.boosterBatterieComment || null,
         completedAt: new Date(),
       }).returning();
+
+      // Generate alerts for failed inspection or missing items
+      if (!body.trousseSecours || !body.roueSecours || !body.extincteur || !body.boosterBatterie) {
+        await app.db.insert(schema.alerts).values({
+          id: randomUUID(),
+          type: 'inspection_failed',
+          title: `Inspection ${body.type} échouée - Articles manquants`,
+          message: `Inspection ${body.type} échouée: articles manquants détectés.`,
+          payload: { inspectionId: inspection.id, shiftId: body.shiftId, type: body.type },
+        });
+      }
+
+      // Generate alerts for each missing item
+      if (!body.trousseSecours) {
+        await app.db.insert(schema.alerts).values({
+          id: randomUUID(),
+          type: 'safety_item_missing',
+          title: 'Article de sécurité manquant: Trousse de secours',
+          message: 'La trousse de secours est manquante ou endommagée.',
+          payload: { inspectionId: inspection.id, shiftId: body.shiftId, itemName: 'Trousse de secours' },
+        });
+      }
+      if (!body.roueSecours) {
+        await app.db.insert(schema.alerts).values({
+          id: randomUUID(),
+          type: 'safety_item_missing',
+          title: 'Article de sécurité manquant: Roue de secours',
+          message: 'La roue de secours est manquante ou endommagée.',
+          payload: { inspectionId: inspection.id, shiftId: body.shiftId, itemName: 'Roue de secours' },
+        });
+      }
+      if (!body.extincteur) {
+        await app.db.insert(schema.alerts).values({
+          id: randomUUID(),
+          type: 'safety_item_missing',
+          title: 'Article de sécurité manquant: Extincteur',
+          message: "L'extincteur est manquant ou endommagé.",
+          payload: { inspectionId: inspection.id, shiftId: body.shiftId, itemName: 'Extincteur' },
+        });
+      }
+      if (!body.boosterBatterie) {
+        await app.db.insert(schema.alerts).values({
+          id: randomUUID(),
+          type: 'safety_item_missing',
+          title: 'Article de sécurité manquant: Booster batterie',
+          message: 'Le booster batterie est manquant ou endommagé.',
+          payload: { inspectionId: inspection.id, shiftId: body.shiftId, itemName: 'Booster batterie' },
+        });
+      }
 
       app.logger.info({ inspectionId: inspection.id, shiftId: body.shiftId }, 'Inspection created successfully');
       return inspection;

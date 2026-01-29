@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { eq, and, isNull } from "drizzle-orm";
+import { randomUUID } from "crypto";
 import * as schema from "../db/schema.js";
 import type { App } from "../index.js";
 
@@ -67,6 +68,23 @@ export function register(app: App, fastify: FastifyInstance) {
         comment: body.comment,
         driverSignature: body.driverSignature,
       }).returning();
+
+      // Check for battery mismatch (return count < departure count)
+      if (body.type === 'return') {
+        const departureRecord = await app.db.select().from(schema.batteryRecords)
+          .where(and(eq(schema.batteryRecords.shiftId, body.shiftId), eq(schema.batteryRecords.type, 'departure')))
+          .limit(1);
+
+        if (departureRecord.length > 0 && body.count < departureRecord[0].count) {
+          await app.db.insert(schema.alerts).values({
+            id: randomUUID(),
+            type: 'battery_mismatch',
+            title: 'Anomalie batterie détectée',
+            message: `Le nombre de batteries au retour (${body.count}) est inférieur au départ (${departureRecord[0].count}).`,
+            payload: { shiftId: body.shiftId, departureCount: departureRecord[0].count, returnCount: body.count },
+          });
+        }
+      }
 
       app.logger.info({ recordId: record.id, shiftId: body.shiftId }, 'Battery record created successfully');
       return record;

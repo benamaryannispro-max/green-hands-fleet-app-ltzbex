@@ -27,8 +27,9 @@ export function register(app: App, fastify: FastifyInstance) {
     app.logger.info({ phone, firstName, lastName }, 'Creating new driver');
 
     try {
+      const driverId = randomUUID();
       const [driver] = await app.db.insert(schema.users).values({
-        id: randomUUID(),
+        id: driverId,
         phone,
         firstName,
         lastName,
@@ -37,7 +38,16 @@ export function register(app: App, fastify: FastifyInstance) {
         isActive: true,
       }).returning();
 
-      app.logger.info({ driverId: driver.id, phone }, 'Driver created successfully');
+      // Generate driver_pending alert
+      await app.db.insert(schema.alerts).values({
+        id: randomUUID(),
+        type: 'driver_pending',
+        title: `Nouveau conducteur en attente d'approbation`,
+        message: `${firstName} ${lastName} (${phone}) nécessite une approbation.`,
+        payload: { driverId, phone, firstName, lastName },
+      });
+
+      app.logger.info({ driverId: driver.id, phone }, 'Driver created successfully with pending alert');
       return driver;
     } catch (error) {
       app.logger.error({ err: error, phone }, 'Failed to create driver');

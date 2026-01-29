@@ -15,6 +15,13 @@
       "when": 1769709160857,
       "tag": "20260129175240_unknown_menace",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1769709717612,
+      "tag": "20260129180157_medical_white_tiger",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, boolean, integer, decimal, index } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, boolean, integer, decimal, index, jsonb } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // ============================================
@@ -130,6 +130,42 @@ export const maintenanceLogs = pgTable('maintenance_logs', {
 ]);
 
 // ============================================
+// Alerts Table
+// ============================================
+export const alerts = pgTable('alerts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  type: text('type', { enum: ['driver_pending', 'inspection_failed', 'battery_mismatch', 'safety_item_missing', 'repair_completed'] }).notNull(),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  payload: jsonb('payload'),
+  userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  readAt: timestamp('read_at'),
+}, (table) => [
+  index('alerts_type_idx').on(table.type),
+  index('alerts_user_id_idx').on(table.userId),
+  index('alerts_created_at_idx').on(table.createdAt),
+  index('alerts_read_at_idx').on(table.readAt),
+]);
+
+// ============================================
+// Maintenance Alerts Table
+// ============================================
+export const maintenanceAlerts = pgTable('maintenance_alerts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  vehicleId: uuid('vehicle_id').notNull().references(() => vehicles.id, { onDelete: 'cascade' }),
+  alertType: text('alert_type').notNull(),
+  thresholdKm: integer('threshold_km').notNull(),
+  currentKm: integer('current_km').notNull(),
+  message: text('message').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  resolvedAt: timestamp('resolved_at'),
+}, (table) => [
+  index('maintenance_alerts_vehicle_id_idx').on(table.vehicleId),
+  index('maintenance_alerts_alert_type_idx').on(table.alertType),
+]);
+
+// ============================================
 // Relations
 // ============================================
 export const usersRelations = relations(users, ({ many }) => ({
@@ -141,6 +177,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 export const vehiclesRelations = relations(vehicles, ({ many }) => ({
   shifts: many(shifts),
   maintenanceLogs: many(maintenanceLogs),
+  maintenanceAlerts: many(maintenanceAlerts),
 }));
 
 export const shiftsRelations = relations(shifts, ({ one, many }) => ({
@@ -190,5 +227,19 @@ export const maintenanceLogsRelations = relations(maintenanceLogs, ({ one }) => 
   performedByUser: one(users, {
     fields: [maintenanceLogs.performedBy],
     references: [users.id],
+  }),
+}));
+
+export const alertsRelations = relations(alerts, ({ one }) => ({
+  user: one(users, {
+    fields: [alerts.userId],
+    references: [users.id],
+  }),
+}));
+
+export const maintenanceAlertsRelations = relations(maintenanceAlerts, ({ one }) => ({
+  vehicle: one(vehicles, {
+    fields: [maintenanceAlerts.vehicleId],
+    references: [vehicles.id],
   }),
 }));

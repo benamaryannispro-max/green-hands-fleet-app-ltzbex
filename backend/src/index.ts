@@ -11,8 +11,10 @@ import * as inspectionsRoutes from './routes/inspections.js';
 import * as batteryRecordsRoutes from './routes/battery-records.js';
 import * as locationRoutes from './routes/location.js';
 import * as vehiclesRoutes from './routes/vehicles.js';
-import * as maintenanceRoutes from './routes/maintenance.js';
 import * as uploadsRoutes from './routes/uploads.js';
+import * as alertsRoutes from './routes/alerts.js';
+import * as maintenanceManagementRoutes from './routes/maintenance-management.js';
+import * as reportsRoutes from './routes/reports.js';
 
 // Merge schemas for full database type support
 const schema = { ...appSchema, ...authSchema };
@@ -86,8 +88,10 @@ inspectionsRoutes.register(app, app.fastify);
 batteryRecordsRoutes.register(app, app.fastify);
 locationRoutes.register(app, app.fastify);
 vehiclesRoutes.register(app, app.fastify);
-maintenanceRoutes.register(app, app.fastify);
 uploadsRoutes.register(app, app.fastify);
+alertsRoutes.register(app, app.fastify);
+maintenanceManagementRoutes.register(app, app.fastify);
+reportsRoutes.register(app, app.fastify);
 
 await app.run();
 app.logger.info('Fleet management system running');
