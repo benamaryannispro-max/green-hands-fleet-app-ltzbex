@@ -19,11 +19,13 @@ import { apiPost } from '@/utils/api';
 import { setBearerToken } from '@/lib/auth';
 
 export default function LoginScreen() {
-  const { signInWithEmail, loading } = useAuth();
+  const { signInWithEmail, signUpWithEmail, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<'leader' | 'driver'>('leader');
+  const [isSignUp, setIsSignUp] = useState(false);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
 
@@ -36,14 +38,34 @@ export default function LoginScreen() {
       return;
     }
 
+    if (isSignUp && !name) {
+      setError('Veuillez entrer votre nom');
+      return;
+    }
+
     try {
-      console.log('Attempting team leader sign in with:', email);
-      await signInWithEmail(email, password);
-      console.log('Team leader sign in successful, redirecting');
+      if (isSignUp) {
+        console.log('Attempting team leader sign up with:', email);
+        await signUpWithEmail(email, password, name);
+        console.log('Team leader sign up successful, redirecting');
+      } else {
+        console.log('Attempting team leader sign in with:', email);
+        await signInWithEmail(email, password);
+        console.log('Team leader sign in successful, redirecting');
+      }
       router.replace('/');
     } catch (err: any) {
-      console.error('Team leader sign in error:', err);
-      setError(err.message || 'Échec de la connexion');
+      console.error('Team leader auth error:', err);
+      const errorMessage = err.message || 'Échec de la connexion';
+      
+      // Provide helpful error messages
+      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+        setError('Email ou mot de passe incorrect. Vérifiez vos identifiants.');
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        setError('Erreur de connexion au serveur. Vérifiez votre connexion internet.');
+      } else {
+        setError(errorMessage);
+      }
     }
   };
 
@@ -116,7 +138,21 @@ export default function LoginScreen() {
 
             {leaderTabActive ? (
               <View style={styles.form}>
-                <Text style={styles.formTitle}>Connexion Chef d&apos;équipe</Text>
+                <Text style={styles.formTitle}>
+                  {isSignUp ? 'Créer un compte Chef d\'équipe' : 'Connexion Chef d\'équipe'}
+                </Text>
+                
+                {isSignUp ? (
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Nom complet"
+                    placeholderTextColor={colors.grey}
+                    value={name}
+                    onChangeText={setName}
+                    editable={!loading}
+                  />
+                ) : null}
+
                 <TextInput
                   style={styles.input}
                   placeholder="Email"
@@ -146,13 +182,30 @@ export default function LoginScreen() {
                   {loading ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text style={styles.buttonText}>Se connecter</Text>
+                    <Text style={styles.buttonText}>
+                      {isSignUp ? 'Créer un compte' : 'Se connecter'}
+                    </Text>
                   )}
                 </TouchableOpacity>
 
-                <Text style={styles.testCredentials}>
-                  Test: contact@thegreenhands.fr / Lagrandeteam13
-                </Text>
+                <TouchableOpacity
+                  style={styles.toggleButton}
+                  onPress={() => {
+                    setIsSignUp(!isSignUp);
+                    setError('');
+                  }}
+                  disabled={loading}
+                >
+                  <Text style={styles.toggleButtonText}>
+                    {isSignUp ? 'Déjà un compte ? Se connecter' : 'Pas de compte ? Créer un compte'}
+                  </Text>
+                </TouchableOpacity>
+
+                {!isSignUp ? (
+                  <Text style={styles.testCredentials}>
+                    Test: contact@thegreenhands.fr / Lagrandeteam13
+                  </Text>
+                ) : null}
               </View>
             ) : (
               <View style={styles.form}>
@@ -305,5 +358,15 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  toggleButton: {
+    marginTop: 12,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  toggleButtonText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
