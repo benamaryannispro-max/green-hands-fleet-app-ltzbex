@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { eq, and, or } from "drizzle-orm";
+import { randomUUID } from "crypto";
 import * as schema from "../db/schema.js";
 import type { App } from "../index.js";
 
@@ -27,6 +28,7 @@ export function register(app: App, fastify: FastifyInstance) {
 
     try {
       const [driver] = await app.db.insert(schema.users).values({
+        id: randomUUID(),
         phone,
         firstName,
         lastName,

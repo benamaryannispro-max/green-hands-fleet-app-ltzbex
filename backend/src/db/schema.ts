@@ -5,7 +5,7 @@ import { relations } from 'drizzle-orm';
 // Users Table
 // ============================================
 export const users = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
+  id: text('id').primaryKey(),
   email: text('email').unique(),
   phone: text('phone').unique(),
   firstName: text('first_name').notNull(),
@@ -40,7 +40,7 @@ export const vehicles = pgTable('vehicles', {
 // ============================================
 export const shifts = pgTable('shifts', {
   id: uuid('id').primaryKey().defaultRandom(),
-  driverId: uuid('driver_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  driverId: text('driver_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   vehicleId: uuid('vehicle_id').references(() => vehicles.id, { onDelete: 'set null' }),
   startTime: timestamp('start_time').notNull(),
   endTime: timestamp('end_time'),
@@ -102,7 +102,7 @@ export const batteryRecords = pgTable('battery_records', {
 export const locationUpdates = pgTable('location_updates', {
   id: uuid('id').primaryKey().defaultRandom(),
   shiftId: uuid('shift_id').notNull().references(() => shifts.id, { onDelete: 'cascade' }),
-  driverId: uuid('driver_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  driverId: text('driver_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   latitude: decimal('latitude', { precision: 10, scale: 8, mode: 'string' }).notNull(),
   longitude: decimal('longitude', { precision: 11, scale: 8, mode: 'string' }).notNull(),
   accuracy: decimal('accuracy', { precision: 10, scale: 2, mode: 'string' }),
@@ -120,7 +120,7 @@ export const maintenanceLogs = pgTable('maintenance_logs', {
   id: uuid('id').primaryKey().defaultRandom(),
   vehicleId: uuid('vehicle_id').notNull().references(() => vehicles.id, { onDelete: 'cascade' }),
   description: text('description').notNull(),
-  performedBy: uuid('performed_by').notNull().references(() => users.id, { onDelete: 'restrict' }),
+  performedBy: text('performed_by').notNull().references(() => users.id, { onDelete: 'restrict' }),
   performedAt: timestamp('performed_at').notNull(),
   cost: decimal('cost', { precision: 10, scale: 2, mode: 'string' }),
   notes: text('notes'),

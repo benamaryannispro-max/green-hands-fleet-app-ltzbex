@@ -1,5 +1,6 @@
 import { createApplication } from "@specific-dev/framework";
 import { eq } from "drizzle-orm";
+import { randomUUID } from "crypto";
 import * as appSchema from './db/schema.js';
 import * as authSchema from './db/auth-schema.js';
 
@@ -29,25 +30,53 @@ app.withAuth();
 app.withStorage();
 
 // Create default team leader if it doesn't exist
-const existingTeamLeader = await app.db.select().from(appSchema.users)
-  .where(eq(appSchema.users.email, 'contact@thegreenhands.fr'))
+const existingAuthUser = await app.db.select().from(authSchema.user)
+  .where(eq(authSchema.user.email, 'contact@thegreenhands.fr'))
   .limit(1);
 
-if (existingTeamLeader.length === 0) {
-  app.logger.info('Creating default team leader');
+if (existingAuthUser.length === 0) {
+  app.logger.info('Creating default team leader test user');
   try {
-    await app.db.insert(appSchema.users).values({
+    const userId = randomUUID();
+    const accountId = randomUUID();
+
+    // Create user in Better Auth (auth table)
+    await app.db.insert(authSchema.user).values({
+      id: userId,
       email: 'contact@thegreenhands.fr',
-      firstName: 'Green',
-      lastName: 'Hands',
+      name: 'Admin Test',
+      emailVerified: true,
+    });
+
+    // Create corresponding entry in custom users table
+    await app.db.insert(appSchema.users).values({
+      id: userId,
+      email: 'contact@thegreenhands.fr',
+      firstName: 'Admin',
+      lastName: 'Test',
       role: 'team_leader',
       isApproved: true,
       isActive: true,
     });
-    app.logger.info('Default team leader created');
+
+    // Create account entry with password hash
+    const bcrypt = await import('bcrypt');
+    const hashedPassword = await bcrypt.hash('Lagrandeteam13', 10);
+
+    await app.db.insert(authSchema.account).values({
+      id: accountId,
+      userId: userId,
+      accountId: userId,
+      providerId: 'credential',
+      password: hashedPassword,
+    });
+
+    app.logger.info({ userId }, 'Default team leader test user created successfully');
   } catch (error) {
-    app.logger.warn({ err: error }, 'Could not create default team leader');
+    app.logger.warn({ err: error }, 'Could not create default team leader test user');
   }
+} else {
+  app.logger.info('Default team leader test user already exists');
 }
 
 // Register all route modules
