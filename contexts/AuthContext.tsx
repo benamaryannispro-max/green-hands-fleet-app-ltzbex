@@ -70,17 +70,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       console.log('[AuthContext] Connexion chef d\'équipe avec:', email);
       
-      const response = await apiPost<{ token: string; user: User }>(
+      const response = await apiPost<{ success: boolean; sessionToken: string; user: User }>(
         '/api/auth/sign-in/email',
         { email, password }
       );
 
-      if (!response.token) {
+      if (!response.sessionToken || !response.success) {
         throw new Error('Échec de la connexion');
       }
 
       console.log('[AuthContext] Connexion réussie, stockage du token');
-      await setBearerToken(response.token);
+      await setBearerToken(response.sessionToken);
       setUser(response.user);
       console.log('[AuthContext] Utilisateur connecté:', response.user);
     } catch (error: any) {
@@ -93,17 +93,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       console.log('[AuthContext] Connexion chauffeur avec:', phone);
       
-      const response = await apiPost<{ token: string; user: User }>(
+      const response = await apiPost<{ success: boolean; sessionToken: string; user: User }>(
         '/api/auth/sign-in/phone',
         { phone }
       );
 
-      if (!response.token) {
+      if (!response.sessionToken || !response.success) {
         throw new Error('Échec de la connexion');
       }
 
       console.log('[AuthContext] Connexion réussie, stockage du token');
-      await setBearerToken(response.token);
+      await setBearerToken(response.sessionToken);
       setUser(response.user);
       console.log('[AuthContext] Utilisateur connecté:', response.user);
     } catch (error: any) {
