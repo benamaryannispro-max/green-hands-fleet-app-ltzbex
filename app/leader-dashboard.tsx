@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,20 +10,22 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, Stack } from 'expo-router';
+import Modal from '@/components/ui/Modal';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 
 export default function LeaderDashboardScreen() {
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handleSignOut = async () => {
-    console.log('User tapped Sign Out button');
+    console.log('[LeaderDashboard] Déconnexion...');
     try {
-      await signOut();
+      await logout();
       router.replace('/login');
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('[LeaderDashboard] Erreur lors de la déconnexion:', error);
     }
   };
 
@@ -40,7 +42,10 @@ export default function LeaderDashboardScreen() {
           headerStyle: { backgroundColor: colors.primary },
           headerTintColor: '#FFFFFF',
           headerRight: () => (
-            <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
+            <TouchableOpacity 
+              onPress={() => setShowLogoutModal(true)} 
+              style={styles.signOutButton}
+            >
               <IconSymbol
                 ios_icon_name="rectangle.portrait.and.arrow.right"
                 android_material_icon_name="logout"
@@ -158,6 +163,17 @@ export default function LeaderDashboardScreen() {
           </View>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        title="Déconnexion"
+        message="Voulez-vous vraiment vous déconnecter ?"
+        type="confirm"
+        confirmText="Déconnexion"
+        cancelText="Annuler"
+        onConfirm={handleSignOut}
+      />
     </SafeAreaView>
   );
 }

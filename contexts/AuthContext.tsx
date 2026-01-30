@@ -1,18 +1,15 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { Platform } from "react-native";
-import * as Linking from "expo-linking";
-import { authClient, setBearerToken, clearAuthTokens, getBearerToken } from "@/lib/auth";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { apiPost, authenticatedGet } from '@/utils/api';
+import { setBearerToken, clearAuthTokens, getBearerToken } from '@/lib/auth';
 
 interface User {
   id: string;
   email?: string;
   phone?: string;
-  firstName?: string;
-  lastName?: string;
-  name?: string;
-  image?: string;
-  role?: 'driver' | 'team_leader' | 'admin';
+  firstName: string;
+  lastName: string;
+  role: 'driver' | 'team_leader' | 'admin';
   isApproved?: boolean;
   isActive?: boolean;
 }
@@ -20,227 +17,123 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string, name?: string) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
-  signInWithApple: () => Promise<void>;
-  signInWithGitHub: () => Promise<void>;
-  signOut: () => Promise<void>;
-  fetchUser: () => Promise<void>;
+  loginLeader: (email: string, password: string) => Promise<void>;
+  loginDriver: (phone: string) => Promise<void>;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-function openOAuthPopup(provider: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const popupUrl = `${window.location.origin}/auth-popup?provider=${provider}`;
-    const width = 500;
-    const height = 600;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
-
-    const popup = window.open(
-      popupUrl,
-      "oauth-popup",
-      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
-    );
-
-    if (!popup) {
-      reject(new Error("Échec de l'ouverture de la fenêtre popup. Veuillez autoriser les popups."));
-      return;
-    }
-
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === "oauth-success" && event.data?.token) {
-        window.removeEventListener("message", handleMessage);
-        clearInterval(checkClosed);
-        resolve(event.data.token);
-      } else if (event.data?.type === "oauth-error") {
-        window.removeEventListener("message", handleMessage);
-        clearInterval(checkClosed);
-        reject(new Error(event.data.error || "Échec de l'authentification OAuth"));
-      }
-    };
-
-    window.addEventListener("message", handleMessage);
-
-    const checkClosed = setInterval(() => {
-      if (popup.closed) {
-        clearInterval(checkClosed);
-        window.removeEventListener("message", handleMessage);
-        reject(new Error("Authentification annulée"));
-      }
-    }, 500);
-  });
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchUser();
-
-    // Écouter les liens profonds (par exemple, depuis les redirections d'authentification sociale)
-    const subscription = Linking.addEventListener("url", (event) => {
-      console.log("[AuthContext] Lien profond reçu, actualisation de la session utilisateur");
-      // Laisser le temps au client de traiter le token si nécessaire
-      setTimeout(() => fetchUser(), 500);
-    });
-
-    // POLLING: Actualiser la session toutes les 5 minutes pour maintenir le token SecureStore synchronisé
-    // Cela évite les erreurs 401 lorsque le token de session tourne
-    const intervalId = setInterval(() => {
-      console.log("[AuthContext] Auto-actualisation de la session utilisateur pour synchroniser le token...");
-      fetchUser();
-    }, 5 * 60 * 1000); // 5 minutes
-
-    return () => {
-      subscription.remove();
-      clearInterval(intervalId);
-    };
+    // Vérifier la session au démarrage
+    checkSession();
   }, []);
 
-  const fetchUser = async () => {
+  const checkSession = async () => {
     try {
       setLoading(true);
-      console.log('[AuthContext] Récupération de la session utilisateur...');
-      const session = await authClient.getSession();
-      console.log('[AuthContext] Réponse de session:', JSON.stringify(session, null, 2));
+      console.log('[AuthContext] Vérification de la session...');
       
-      if (session?.data?.user) {
-        console.log('[AuthContext] Utilisateur trouvé:', session.data.user);
-        setUser(session.data.user as User);
-        // Synchroniser le token avec SecureStore pour utils/api.ts
-        if (session.data.session?.token) {
-          console.log('[AuthContext] Stockage du token bearer');
-          await setBearerToken(session.data.session.token);
-        }
+      const token = await getBearerToken();
+      if (!token) {
+        console.log('[AuthContext] Aucun token trouvé');
+        setUser(null);
+        return;
+      }
+
+      console.log('[AuthContext] Token trouvé, récupération de l\'utilisateur...');
+      const response = await authenticatedGet<{ user: User }>('/api/auth/session');
+      
+      if (response.user) {
+        console.log('[AuthContext] Utilisateur récupéré:', response.user);
+        setUser(response.user);
       } else {
-        console.log('[AuthContext] Aucun utilisateur dans la session');
+        console.log('[AuthContext] Aucun utilisateur dans la réponse');
         setUser(null);
         await clearAuthTokens();
       }
     } catch (error) {
-      console.error("[AuthContext] Échec de la récupération de l'utilisateur:", error);
+      console.error('[AuthContext] Erreur lors de la vérification de la session:', error);
       setUser(null);
+      await clearAuthTokens();
     } finally {
       setLoading(false);
     }
   };
 
-  const signInWithEmail = async (email: string, password: string) => {
+  const loginLeader = async (email: string, password: string) => {
     try {
-      console.log('[AuthContext] Connexion avec email:', email);
-      const result = await authClient.signIn.email({ 
-        email, 
-        password,
-        fetchOptions: {
-          onSuccess: async (ctx) => {
-            console.log('[AuthContext] Callback de succès de connexion:', ctx);
-          },
-          onError: (ctx) => {
-            console.error('[AuthContext] Callback d\'erreur de connexion:', ctx);
-          }
-        }
-      });
-      console.log('[AuthContext] Résultat de connexion:', JSON.stringify(result, null, 2));
+      console.log('[AuthContext] Connexion chef d\'équipe avec:', email);
       
-      // Vérifier si la connexion a réussi
-      if (result?.error) {
-        console.error('[AuthContext] Erreur de connexion:', result.error);
-        throw new Error(result.error.message || 'Échec de la connexion');
-      }
-      
-      // Attendre un peu pour que la session soit établie
-      await new Promise(resolve => setTimeout(resolve, 500));
-      await fetchUser();
-    } catch (error: any) {
-      console.error("[AuthContext] Échec de la connexion par email:", error);
-      // Améliorer le message d'erreur
-      if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-        throw new Error('Email ou mot de passe incorrect');
-      } else if (error.message?.includes('User not found')) {
-        throw new Error('Aucun compte trouvé avec cet email');
-      } else {
-        throw error;
-      }
-    }
-  };
+      const response = await apiPost<{ token: string; user: User }>(
+        '/api/auth/sign-in/email',
+        { email, password }
+      );
 
-  const signUpWithEmail = async (email: string, password: string, name?: string) => {
-    try {
-      console.log('[AuthContext] Inscription avec email:', email);
-      const result = await authClient.signUp.email({
-        email,
-        password,
-        name,
-      });
-      console.log('[AuthContext] Résultat d\'inscription:', JSON.stringify(result, null, 2));
-      
-      // Vérifier si l'inscription a réussi
-      if (result?.error) {
-        console.error('[AuthContext] Erreur d\'inscription:', result.error);
-        throw new Error(result.error.message || 'Échec de l\'inscription');
+      if (!response.token) {
+        throw new Error('Échec de la connexion');
       }
-      
-      // Attendre un peu pour que la session soit établie
-      await new Promise(resolve => setTimeout(resolve, 500));
-      await fetchUser();
-    } catch (error: any) {
-      console.error("[AuthContext] Échec de l'inscription par email:", error);
-      // Améliorer le message d'erreur
-      if (error.message?.includes('already exists')) {
-        throw new Error('Un compte existe déjà avec cet email');
-      } else {
-        throw error;
-      }
-    }
-  };
 
-  const signInWithSocial = async (provider: "google" | "apple" | "github") => {
-    try {
-      if (Platform.OS === "web") {
-        const token = await openOAuthPopup(provider);
-        await setBearerToken(token);
-        await fetchUser();
-      } else {
-        // Natif: Utiliser expo-linking pour générer un lien profond approprié
-        const callbackURL = Linking.createURL("/");
-        await authClient.signIn.social({
-          provider,
-          callbackURL,
-        });
-        // Note: La redirection rechargera l'application ou sera gérée par les liens profonds.
-        // fetchUser sera appelé au montage ou via l'écouteur d'événements si nécessaire.
-        // Pour un flux simple, nous pourrions avoir besoin d'écouter les événements URL.
-        // Mais le client expo better-auth gère la redirection et le stockage de session ?
-        // Nous devons généralement attendre ou nous fier à fetchUser au prochain chargement de l'application.
-        // Pour l'instant, appeler fetchUser au cas où.
-        await fetchUser();
-      }
-    } catch (error) {
-      console.error(`[AuthContext] Échec de la connexion ${provider}:`, error);
+      console.log('[AuthContext] Connexion réussie, stockage du token');
+      await setBearerToken(response.token);
+      setUser(response.user);
+      console.log('[AuthContext] Utilisateur connecté:', response.user);
+    } catch (error: any) {
+      console.error('[AuthContext] Erreur de connexion chef d\'équipe:', error);
       throw error;
     }
   };
 
-  const signInWithGoogle = () => signInWithSocial("google");
-  const signInWithApple = () => signInWithSocial("apple");
-  const signInWithGitHub = () => signInWithSocial("github");
+  const loginDriver = async (phone: string) => {
+    try {
+      console.log('[AuthContext] Connexion chauffeur avec:', phone);
+      
+      const response = await apiPost<{ token: string; user: User }>(
+        '/api/auth/sign-in/phone',
+        { phone }
+      );
 
-  const signOut = async () => {
+      if (!response.token) {
+        throw new Error('Échec de la connexion');
+      }
+
+      console.log('[AuthContext] Connexion réussie, stockage du token');
+      await setBearerToken(response.token);
+      setUser(response.user);
+      console.log('[AuthContext] Utilisateur connecté:', response.user);
+    } catch (error: any) {
+      console.error('[AuthContext] Erreur de connexion chauffeur:', error);
+      throw error;
+    }
+  };
+
+  const logout = async () => {
     try {
       console.log('[AuthContext] Déconnexion...');
-      await authClient.signOut();
+      
+      // Appeler l'endpoint de déconnexion (optionnel, pour invalider le token côté serveur)
+      try {
+        await apiPost('/api/auth/sign-out', {});
+      } catch (error) {
+        console.warn('[AuthContext] Erreur lors de l\'appel API de déconnexion (ignorée):', error);
+      }
     } catch (error) {
-      console.error("[AuthContext] Échec de la déconnexion (API):", error);
+      console.error('[AuthContext] Erreur lors de la déconnexion:', error);
     } finally {
-       // Toujours effacer l'état local
-       console.log('[AuthContext] Effacement de l\'état d\'authentification local');
-       setUser(null);
-       await clearAuthTokens();
+      // Toujours effacer l'état local
+      console.log('[AuthContext] Effacement de l\'état local');
+      setUser(null);
+      await clearAuthTokens();
     }
+  };
+
+  const refreshUser = async () => {
+    await checkSession();
   };
 
   return (
@@ -248,13 +141,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         loading,
-        signInWithEmail,
-        signUpWithEmail,
-        signInWithGoogle,
-        signInWithApple,
-        signInWithGitHub,
-        signOut,
-        fetchUser,
+        loginLeader,
+        loginDriver,
+        logout,
+        refreshUser,
       }}
     >
       {children}
@@ -265,7 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth doit être utilisé dans un AuthProvider");
+    throw new Error('useAuth doit être utilisé dans un AuthProvider');
   }
   return context;
 }

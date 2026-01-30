@@ -15,23 +15,19 @@ import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/styles/commonStyles';
-import { apiPost } from '@/utils/api';
-import { setBearerToken } from '@/lib/auth';
 
 export default function LoginScreen() {
-  const { signInWithEmail, signUpWithEmail, loading, fetchUser } = useAuth();
+  const { loginLeader, loginDriver } = useAuth();
   const [activeTab, setActiveTab] = useState<'leader' | 'driver'>('leader');
-  const [isSignUp, setIsSignUp] = useState(false);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLeaderSignIn = async () => {
-    console.log('[LoginScreen] Utilisateur a cliqué sur Connexion Chef d\'équipe');
+  const handleLeaderLogin = async () => {
+    console.log('[LoginScreen] Tentative de connexion chef d\'équipe');
     setError('');
     
     if (!email || !password) {
@@ -39,42 +35,20 @@ export default function LoginScreen() {
       return;
     }
 
-    if (isSignUp && !name) {
-      setError('Veuillez entrer votre nom');
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      if (isSignUp) {
-        console.log('[LoginScreen] Tentative d\'inscription chef d\'équipe avec:', email);
-        await signUpWithEmail(email, password, name);
-        console.log('[LoginScreen] Inscription chef d\'équipe réussie');
-      } else {
-        console.log('[LoginScreen] Tentative de connexion chef d\'équipe avec:', email);
-        await signInWithEmail(email, password);
-        console.log('[LoginScreen] Connexion chef d\'équipe réussie');
-      }
-      
-      // Attendre un peu pour que la session soit établie
-      console.log('[LoginScreen] Attente de l\'établissement de la session...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      await fetchUser();
-      
-      console.log('[LoginScreen] Redirection vers l\'accueil');
+      await loginLeader(email, password);
+      console.log('[LoginScreen] Connexion réussie, redirection');
       router.replace('/');
     } catch (err: any) {
-      console.error('[LoginScreen] Erreur d\'authentification chef d\'équipe:', err);
+      console.error('[LoginScreen] Erreur de connexion:', err);
       const errorMessage = err.message || 'Échec de la connexion';
       
-      // Messages d'erreur utiles en français
-      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized') || errorMessage.includes('Invalid') || errorMessage.includes('incorrect')) {
-        setError('❌ Email ou mot de passe incorrect. Vérifiez vos identifiants.\n\n💡 Astuce : Utilisez les identifiants de test affichés ci-dessous.\n\n⏳ Si le problème persiste, le backend est peut-être en cours de démarrage. Attendez 30 secondes et réessayez.');
-      } else if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('Failed to fetch')) {
-        setError('❌ Erreur de connexion au serveur. Vérifiez votre connexion internet.\n\n⏳ Le backend est peut-être en cours de démarrage. Attendez 30 secondes et réessayez.');
-      } else if (errorMessage.includes('User not found')) {
-        setError('❌ Aucun compte trouvé avec cet email.\n\n💡 Utilisez les identifiants de test : contact@thegreenhands.fr / Lagrandeteam13');
+      if (errorMessage.includes('401') || errorMessage.includes('incorrect') || errorMessage.includes('Invalid')) {
+        setError('❌ Email ou mot de passe incorrect.\n\n💡 Utilisez les identifiants de test ci-dessous.');
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        setError('❌ Erreur de connexion au serveur.\n\n⏳ Le backend est peut-être en cours de démarrage. Attendez 30 secondes et réessayez.');
       } else {
         setError(`❌ ${errorMessage}`);
       }
@@ -83,8 +57,8 @@ export default function LoginScreen() {
     }
   };
 
-  const handleDriverSignIn = async () => {
-    console.log('[LoginScreen] Utilisateur a cliqué sur Connexion Chauffeur avec téléphone:', phone);
+  const handleDriverLogin = async () => {
+    console.log('[LoginScreen] Tentative de connexion chauffeur');
     setError('');
     
     if (!phone) {
@@ -95,25 +69,19 @@ export default function LoginScreen() {
     setIsLoading(true);
 
     try {
-      console.log('[LoginScreen] Tentative de connexion chauffeur avec téléphone:', phone);
-      const response = await apiPost('/api/auth/sign-in/phone', { phone });
-      
-      if (response.session?.token) {
-        // Stocker le token bearer
-        await setBearerToken(response.session.token);
-        console.log('[LoginScreen] Connexion chauffeur réussie, redirection');
-        router.replace('/');
-      } else {
-        setError('❌ Échec de la connexion - session invalide');
-      }
+      await loginDriver(phone);
+      console.log('[LoginScreen] Connexion réussie, redirection');
+      router.replace('/');
     } catch (err: any) {
-      console.error('[LoginScreen] Erreur de connexion chauffeur:', err);
+      console.error('[LoginScreen] Erreur de connexion:', err);
       const errorMessage = err.message || '';
       
-      if (errorMessage.includes('not approved') || errorMessage.includes('pending')) {
+      if (errorMessage.includes('attente') || errorMessage.includes('pending')) {
         setError('❌ Votre compte est en attente d\'approbation par un chef d\'équipe.');
-      } else if (errorMessage.includes('not found')) {
-        setError('❌ Aucun compte trouvé avec ce numéro. Contactez votre chef d\'équipe.');
+      } else if (errorMessage.includes('non reconnu') || errorMessage.includes('not found')) {
+        setError('❌ Numéro de téléphone non reconnu. Contactez votre chef d\'équipe.');
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        setError('❌ Erreur de connexion au serveur.\n\n⏳ Le backend est peut-être en cours de démarrage. Attendez 30 secondes et réessayez.');
       } else {
         setError(`❌ ${errorMessage || 'Échec de la connexion'}`);
       }
@@ -124,7 +92,6 @@ export default function LoginScreen() {
 
   const leaderTabActive = activeTab === 'leader';
   const driverTabActive = activeTab === 'driver';
-  const buttonDisabled = loading || isLoading;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -175,20 +142,7 @@ export default function LoginScreen() {
 
             {leaderTabActive ? (
               <View style={styles.form}>
-                <Text style={styles.formTitle}>
-                  {isSignUp ? 'Créer un compte Chef d\'équipe' : 'Connexion Chef d\'équipe'}
-                </Text>
-                
-                {isSignUp ? (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Nom complet"
-                    placeholderTextColor={colors.grey}
-                    value={name}
-                    onChangeText={setName}
-                    editable={!buttonDisabled}
-                  />
-                ) : null}
+                <Text style={styles.formTitle}>Connexion Chef d&apos;équipe</Text>
 
                 <TextInput
                   style={styles.input}
@@ -198,7 +152,7 @@ export default function LoginScreen() {
                   onChangeText={setEmail}
                   autoCapitalize="none"
                   keyboardType="email-address"
-                  editable={!buttonDisabled}
+                  editable={!isLoading}
                 />
 
                 <TextInput
@@ -208,53 +162,45 @@ export default function LoginScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
-                  editable={!buttonDisabled}
+                  editable={!isLoading}
                 />
 
                 <TouchableOpacity
-                  style={[styles.button, buttonDisabled && styles.buttonDisabled]}
-                  onPress={handleLeaderSignIn}
-                  disabled={buttonDisabled}
+                  style={[styles.button, isLoading && styles.buttonDisabled]}
+                  onPress={handleLeaderLogin}
+                  disabled={isLoading}
                 >
-                  {buttonDisabled ? (
+                  {isLoading ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text style={styles.buttonText}>
-                      {isSignUp ? 'Créer un compte' : 'Se connecter'}
-                    </Text>
+                    <Text style={styles.buttonText}>Se connecter</Text>
                   )}
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={styles.toggleButton}
-                  onPress={() => {
-                    setIsSignUp(!isSignUp);
-                    setError('');
-                  }}
-                  disabled={buttonDisabled}
-                >
-                  <Text style={styles.toggleButtonText}>
-                    {isSignUp ? 'Déjà un compte ? Se connecter' : 'Pas de compte ? Créer un compte'}
+                <View style={styles.testCredentialsContainer}>
+                  <Text style={styles.testCredentialsTitle}>🔑 Identifiants de test :</Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setEmail('contact@thegreenhands.fr');
+                      setPassword('Lagrandeteam13');
+                    }}
+                    style={styles.autofillButton}
+                  >
+                    <Text style={styles.autofillButtonText}>📋 Remplir automatiquement</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.testCredentials}>
+                    Email: contact@thegreenhands.fr
                   </Text>
-                </TouchableOpacity>
-
-                {!isSignUp ? (
-                  <View style={styles.testCredentialsContainer}>
-                    <Text style={styles.testCredentialsTitle}>🔑 Identifiants de test :</Text>
-                    <Text style={styles.testCredentials}>
-                      Email: contact@thegreenhands.fr
-                    </Text>
-                    <Text style={styles.testCredentials}>
-                      Mot de passe: Lagrandeteam13
-                    </Text>
-                    <Text style={styles.testCredentialsNote}>
-                      ✅ Un utilisateur de test est créé automatiquement au démarrage du serveur.
-                    </Text>
-                    <Text style={styles.testCredentialsNote}>
-                      ⏳ Si la connexion échoue, le backend est peut-être en cours de démarrage. Attendez 30 secondes et réessayez.
-                    </Text>
-                  </View>
-                ) : null}
+                  <Text style={styles.testCredentials}>
+                    Mot de passe: Lagrandeteam13
+                  </Text>
+                  <Text style={styles.testCredentialsNote}>
+                    ✅ Un utilisateur de test est créé automatiquement au démarrage du serveur.
+                  </Text>
+                  <Text style={styles.testCredentialsNote}>
+                    ⏳ Si la connexion échoue, le backend est peut-être en cours de démarrage. Attendez 30 secondes et réessayez.
+                  </Text>
+                </View>
               </View>
             ) : (
               <View style={styles.form}>
@@ -266,15 +212,15 @@ export default function LoginScreen() {
                   value={phone}
                   onChangeText={setPhone}
                   keyboardType="phone-pad"
-                  editable={!buttonDisabled}
+                  editable={!isLoading}
                 />
 
                 <TouchableOpacity
-                  style={[styles.button, buttonDisabled && styles.buttonDisabled]}
-                  onPress={handleDriverSignIn}
-                  disabled={buttonDisabled}
+                  style={[styles.button, isLoading && styles.buttonDisabled]}
+                  onPress={handleDriverLogin}
+                  disabled={isLoading}
                 >
-                  {buttonDisabled ? (
+                  {isLoading ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
                     <Text style={styles.buttonText}>Se connecter</Text>
@@ -434,6 +380,18 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     lineHeight: 16,
   },
+  autofillButton: {
+    backgroundColor: colors.accent,
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  autofillButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   driverNoteContainer: {
     marginTop: 16,
     padding: 12,
@@ -447,15 +405,5 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
-  },
-  toggleButton: {
-    marginTop: 12,
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  toggleButtonText: {
-    color: colors.primary,
-    fontSize: 14,
-    fontWeight: '500',
   },
 });

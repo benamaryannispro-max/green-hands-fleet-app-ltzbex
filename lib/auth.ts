@@ -1,71 +1,53 @@
 
-import { createAuthClient } from "better-auth/react";
-import { expoClient } from "@better-auth/expo/client";
-import * as SecureStore from "expo-secure-store";
-import { Platform } from "react-native";
-import Constants from "expo-constants";
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
-const API_URL = Constants.expoConfig?.extra?.backendUrl || "";
+const TOKEN_KEY = 'auth_token';
 
-export const BEARER_TOKEN_KEY = "greenhands_bearer_token";
-
-// Platform-specific storage: localStorage for web, SecureStore for native
-const storage = Platform.OS === "web"
-  ? {
-      getItem: (key: string) => localStorage.getItem(key),
-      setItem: (key: string, value: string) => localStorage.setItem(key, value),
-      deleteItem: (key: string) => localStorage.removeItem(key),
+/**
+ * Stocke le token Bearer de manière sécurisée
+ */
+export async function setBearerToken(token: string): Promise<void> {
+  try {
+    if (Platform.OS === 'web') {
+      localStorage.setItem(TOKEN_KEY, token);
+    } else {
+      await SecureStore.setItemAsync(TOKEN_KEY, token);
     }
-  : SecureStore;
-
-export const authClient = createAuthClient({
-  baseURL: API_URL,
-  plugins: [
-    expoClient({
-      scheme: "greenhands",
-      storagePrefix: "greenhands",
-      storage,
-    }),
-  ],
-  // On web, use cookies with credentials: include
-  ...(Platform.OS === "web" && {
-    fetchOptions: {
-      credentials: "include" as RequestCredentials,
-    },
-  }),
-});
-
-export async function setBearerToken(token: string) {
-  if (Platform.OS === "web") {
-    localStorage.setItem(BEARER_TOKEN_KEY, token);
-  } else {
-    await SecureStore.setItemAsync(BEARER_TOKEN_KEY, token);
+    console.log('[Auth] Token Bearer stocké avec succès');
+  } catch (error) {
+    console.error('[Auth] Erreur lors du stockage du token:', error);
   }
 }
 
+/**
+ * Récupère le token Bearer stocké
+ */
 export async function getBearerToken(): Promise<string | null> {
-  if (Platform.OS === "web") {
-    return localStorage.getItem(BEARER_TOKEN_KEY);
-  } else {
-    return await SecureStore.getItemAsync(BEARER_TOKEN_KEY);
-  }
-}
-
-export async function clearAuthTokens() {
-  if (Platform.OS === "web") {
-    localStorage.removeItem(BEARER_TOKEN_KEY);
-    // Clear all Better Auth related items
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('greenhands')) {
-        keysToRemove.push(key);
-      }
+  try {
+    if (Platform.OS === 'web') {
+      return localStorage.getItem(TOKEN_KEY);
+    } else {
+      return await SecureStore.getItemAsync(TOKEN_KEY);
     }
-    keysToRemove.forEach(key => localStorage.removeItem(key));
-  } else {
-    await SecureStore.deleteItemAsync(BEARER_TOKEN_KEY);
+  } catch (error) {
+    console.error('[Auth] Erreur lors de la récupération du token:', error);
+    return null;
   }
 }
 
-export { API_URL };
+/**
+ * Supprime le token Bearer stocké
+ */
+export async function clearAuthTokens(): Promise<void> {
+  try {
+    if (Platform.OS === 'web') {
+      localStorage.removeItem(TOKEN_KEY);
+    } else {
+      await SecureStore.deleteItemAsync(TOKEN_KEY);
+    }
+    console.log('[Auth] Tokens d\'authentification effacés');
+  } catch (error) {
+    console.error('[Auth] Erreur lors de l\'effacement des tokens:', error);
+  }
+}

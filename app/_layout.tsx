@@ -1,29 +1,28 @@
-import "react-native-reanimated";
-import React, { useEffect } from "react";
-import { useFonts } from "expo-font";
-import { Stack, useRouter, useSegments } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import { SystemBars } from "react-native-edge-to-edge";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useColorScheme, View, ActivityIndicator } from "react-native";
-import { useNetworkState } from "expo-network";
+
+import 'react-native-reanimated';
+import React, { useEffect } from 'react';
+import { useFonts } from 'expo-font';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { SystemBars } from 'react-native-edge-to-edge';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useColorScheme, View, ActivityIndicator } from 'react-native';
+import { useNetworkState } from 'expo-network';
 import {
   DarkTheme,
   DefaultTheme,
   Theme,
   ThemeProvider,
-} from "@react-navigation/native";
-import { StatusBar } from "expo-status-bar";
-import { WidgetProvider } from "@/contexts/WidgetContext";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { colors } from "@/styles/commonStyles";
-// Note: Error logging is auto-initialized via index.ts import
+} from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
+import { WidgetProvider } from '@/contexts/WidgetContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { colors } from '@/styles/commonStyles';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
-  initialRouteName: "(tabs)", // Ensure any route can link back to `/`
+  initialRouteName: '(tabs)',
 };
 
 function RootLayoutNav() {
@@ -36,15 +35,13 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === 'login';
 
-    console.log('[RootLayout] Auth state:', { user: !!user, loading, inAuthGroup, segments });
+    console.log('[RootLayout] État auth:', { user: !!user, loading, inAuthGroup, segments });
 
     if (!user && !inAuthGroup) {
-      // Redirect to login if not authenticated
-      console.log('[RootLayout] Redirecting to login');
+      console.log('[RootLayout] Redirection vers login');
       router.replace('/login');
     } else if (user && inAuthGroup) {
-      // Redirect to app if authenticated
-      console.log('[RootLayout] Redirecting to app');
+      console.log('[RootLayout] Redirection vers app');
       router.replace('/');
     }
   }, [user, loading, segments]);
@@ -59,14 +56,8 @@ function RootLayoutNav() {
 
   return (
     <Stack>
-      {/* Login screen */}
       <Stack.Screen name="login" options={{ headerShown: false }} />
-      {/* Auth callback screens */}
-      <Stack.Screen name="auth-callback" options={{ headerShown: false }} />
-      <Stack.Screen name="auth-popup" options={{ headerShown: false }} />
-      {/* Main app with tabs */}
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      {/* Additional screens */}
       <Stack.Screen name="alerts-center" options={{ headerShown: false }} />
       <Stack.Screen name="vehicles" options={{ headerShown: false }} />
       <Stack.Screen name="maintenance" options={{ headerShown: false }} />
@@ -78,7 +69,6 @@ function RootLayoutNav() {
       <Stack.Screen name="driver-dashboard" options={{ headerShown: false }} />
       <Stack.Screen name="leader-dashboard" options={{ headerShown: false }} />
       <Stack.Screen name="fleet-map" options={{ headerShown: false }} />
-      {/* 404 */}
       <Stack.Screen name="+not-found" />
     </Stack>
   );
@@ -88,7 +78,7 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const networkState = useNetworkState();
   const [loaded] = useFonts({
-    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
+    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
   useEffect(() => {
@@ -102,7 +92,7 @@ export default function RootLayout() {
       !networkState.isConnected &&
       networkState.isInternetReachable === false
     ) {
-      console.log("🔌 You are offline - changes will be synced when back online");
+      console.log('🔌 Vous êtes hors ligne - les changements seront synchronisés une fois en ligne');
     }
   }, [networkState.isConnected, networkState.isInternetReachable]);
 
@@ -114,41 +104,42 @@ export default function RootLayout() {
     ...DefaultTheme,
     dark: false,
     colors: {
-      primary: "rgb(0, 122, 255)", // System Blue
-      background: "rgb(242, 242, 247)", // Light mode background
-      card: "rgb(255, 255, 255)", // White cards/surfaces
-      text: "rgb(0, 0, 0)", // Black text for light mode
-      border: "rgb(216, 216, 220)", // Light gray for separators/borders
-      notification: "rgb(255, 59, 48)", // System Red
+      primary: 'rgb(0, 122, 255)',
+      background: 'rgb(242, 242, 247)',
+      card: 'rgb(255, 255, 255)',
+      text: 'rgb(0, 0, 0)',
+      border: 'rgb(216, 216, 220)',
+      notification: 'rgb(255, 59, 48)',
     },
   };
 
   const CustomDarkTheme: Theme = {
     ...DarkTheme,
     colors: {
-      primary: "rgb(10, 132, 255)", // System Blue (Dark Mode)
-      background: "rgb(1, 1, 1)", // True black background for OLED displays
-      card: "rgb(28, 28, 30)", // Dark card/surface color
-      text: "rgb(255, 255, 255)", // White text for dark mode
-      border: "rgb(44, 44, 46)", // Dark gray for separators/borders
-      notification: "rgb(255, 69, 58)", // System Red (Dark Mode)
+      primary: 'rgb(10, 132, 255)',
+      background: 'rgb(1, 1, 1)',
+      card: 'rgb(28, 28, 30)',
+      text: 'rgb(255, 255, 255)',
+      border: 'rgb(44, 44, 46)',
+      notification: 'rgb(255, 69, 58)',
     },
   };
+
   return (
     <>
       <StatusBar style="auto" animated />
-        <ThemeProvider
-          value={colorScheme === "dark" ? CustomDarkTheme : CustomDefaultTheme}
-        >
-          <AuthProvider>
-            <WidgetProvider>
-              <GestureHandlerRootView>
-                <RootLayoutNav />
-                <SystemBars style={"auto"} />
-              </GestureHandlerRootView>
-            </WidgetProvider>
-          </AuthProvider>
-        </ThemeProvider>
+      <ThemeProvider
+        value={colorScheme === 'dark' ? CustomDarkTheme : CustomDefaultTheme}
+      >
+        <AuthProvider>
+          <WidgetProvider>
+            <GestureHandlerRootView>
+              <RootLayoutNav />
+              <SystemBars style="auto" />
+            </GestureHandlerRootView>
+          </WidgetProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </>
   );
 }

@@ -9,233 +9,203 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, Stack } from 'expo-router';
-import { colors } from '@/styles/commonStyles';
-import { IconSymbol } from '@/components/IconSymbol';
+import { useAuth } from '@/contexts/AuthContext';
 import { authenticatedGet, authenticatedPost, authenticatedPut } from '@/utils/api';
 import { startLocationTracking, stopLocationTracking } from '@/utils/locationTracking';
 import Modal from '@/components/ui/Modal';
+import { colors } from '@/styles/commonStyles';
+import { IconSymbol } from '@/components/IconSymbol';
 
 export default function DriverDashboardScreen() {
-  const { user, signOut } = useAuth();
   const router = useRouter();
+  const { user, logout } = useAuth();
   const [activeShift, setActiveShift] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState<{ visible: boolean; title: string; message: string; type: 'success' | 'error' }>({
-    visible: false,
-    title: '',
-    message: '',
-    type: 'success',
-  });
+  const [error, setError] = useState('');
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     loadActiveShift();
   }, []);
 
   const loadActiveShift = async () => {
-    console.log('Loading active shift for driver');
-    setLoading(true);
     try {
-      const shift = await authenticatedGet('/api/shifts/active');
-      console.log('Active shift loaded:', shift);
+      setLoading(true);
+      console.log('[DriverDashboard] Chargement du shift actif...');
+      const shift = await authenticatedGet<any>('/api/shifts/active');
       setActiveShift(shift);
-    } catch (error) {
-      console.error('Error loading active shift:', error);
-      setActiveShift(null);
+      console.log('[DriverDashboard] Shift actif:', shift);
+    } catch (err: any) {
+      console.error('[DriverDashboard] Erreur lors du chargement du shift:', err);
+      if (!err.message?.includes('404')) {
+        setError('Erreur lors du chargement du shift');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleStartShift = async () => {
-    console.log('User tapped Start Shift button');
-    setLoading(true);
     try {
-      const shift = await authenticatedPost('/api/shifts/start', {});
-      console.log('Shift started:', shift);
+      console.log('[DriverDashboard] Démarrage du shift...');
+      const shift = await authenticatedPost<any>('/api/shifts/start', {});
       setActiveShift(shift);
       
-      // Start location tracking
-      const trackingStarted = await startLocationTracking(shift.id);
-      if (!trackingStarted) {
-        setModal({
-          visible: true,
-          title: 'Attention',
-          message: 'Le suivi de localisation n\'a pas pu démarrer. Veuillez autoriser l\'accès à la localisation.',
-          type: 'error',
-        });
-      } else {
-        setModal({
-          visible: true,
-          title: 'Shift démarré',
-          message: 'Votre shift a démarré et le suivi GPS est actif',
-          type: 'success',
-        });
-      }
-    } catch (error) {
-      console.error('Error starting shift:', error);
-      setModal({
-        visible: true,
-        title: 'Erreur',
-        message: 'Impossible de démarrer le shift',
-        type: 'error',
+      await startLocationTracking(shift.id);
+      
+      router.push({
+        pathname: '/inspection',
+        params: { shiftId: shift.id, type: 'depart' },
       });
-    } finally {
-      setLoading(false);
+    } catch (err: any) {
+      console.error('[DriverDashboard] Erreur lors du démarrage du shift:', err);
+      setError('Erreur lors du démarrage du shift');
     }
   };
 
   const handleEndShift = async () => {
-    console.log('User tapped End Shift button');
     if (!activeShift) return;
-    
-    setLoading(true);
+
     try {
-      const updatedShift = await authenticatedPut(`/api/shifts/${activeShift.id}/end`, {});
-      console.log('Shift ended:', updatedShift);
+      console.log('[DriverDashboard] Fin du shift...');
       
-      // Stop location tracking
-      await stopLocationTracking();
-      
-      setActiveShift(null);
-      setModal({
-        visible: true,
-        title: 'Shift terminé',
-        message: 'Votre shift a été terminé avec succès',
-        type: 'success',
+      router.push({
+        pathname: '/inspection',
+        params: { shiftId: activeShift.id, type: 'retour' },
       });
-    } catch (error) {
-      console.error('Error ending shift:', error);
-      setModal({
-        visible: true,
-        title: 'Erreur',
-        message: 'Impossible de terminer le shift',
-        type: 'error',
-      });
-    } finally {
-      setLoading(false);
+    } catch (err: any) {
+      console.error('[DriverDashboard] Erreur lors de la fin du shift:', err);
+      setError('Erreur lors de la fin du shift');
     }
   };
 
   const handleSignOut = async () => {
-    console.log('User tapped Sign Out button');
     try {
-      await signOut();
+      console.log('[DriverDashboard] Déconnexion...');
+      await logout();
       router.replace('/login');
-    } catch (error) {
-      console.error('Error signing out:', error);
+    } catch (err: any) {
+      console.error('[DriverDashboard] Erreur lors de la déconnexion:', err);
     }
   };
 
-  const shiftActive = activeShift !== null;
-  const statusText = shiftActive ? 'Shift actif' : 'Shift inactif';
-  const statusColor = shiftActive ? colors.success : colors.inactive;
-
-  const firstName = user?.firstName || 'Chauffeur';
-  const lastName = user?.lastName || '';
-  const fullName = `${firstName} ${lastName}`.trim();
+  const userName = user?.firstName && user?.lastName 
+    ? `${user.firstName} ${user.lastName}` 
+    : 'Chauffeur';
+  const shiftStatus = activeShift ? 'Shift actif' : 'Shift inactif';
+  const statusColor = activeShift ? colors.success : colors.grey;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <Stack.Screen
         options={{
           headerShown: true,
-          title: 'GREEN HANDS',
-          headerStyle: { backgroundColor: colors.primary },
-          headerTintColor: '#FFFFFF',
+          title: 'Tableau de bord Chauffeur',
+          headerStyle: { backgroundColor: colors.card },
+          headerTintColor: colors.text,
           headerRight: () => (
-            <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
+            <TouchableOpacity
+              onPress={() => setShowLogoutModal(true)}
+              style={styles.logoutButton}
+            >
               <IconSymbol
                 ios_icon_name="rectangle.portrait.and.arrow.right"
                 android_material_icon_name="logout"
                 size={24}
-                color="#FFFFFF"
+                color={colors.text}
               />
             </TouchableOpacity>
           ),
         }}
       />
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <Text style={styles.welcomeText}>Bonjour,</Text>
-            <Text style={styles.nameText}>{fullName}</Text>
-          </View>
 
-          <View style={[styles.statusCard, { borderColor: statusColor }]}>
-            <View style={[styles.statusIndicator, { backgroundColor: statusColor }]} />
-            <Text style={styles.statusText}>{statusText}</Text>
+      <ScrollView style={styles.content}>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
+        ) : (
+          <>
+            <View style={styles.userCard}>
+              <View style={styles.userIconContainer}>
+                <IconSymbol
+                  ios_icon_name="person.circle.fill"
+                  android_material_icon_name="account-circle"
+                  size={64}
+                  color={colors.primary}
+                />
+              </View>
+              <Text style={styles.userName}>{userName}</Text>
+              <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+                <Text style={styles.statusText}>{shiftStatus}</Text>
+              </View>
+            </View>
 
-          {loading ? (
-            <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
-          ) : (
+            {error ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
             <View style={styles.actionsContainer}>
-              {!shiftActive ? (
-                <TouchableOpacity style={styles.primaryButton} onPress={handleStartShift}>
+              {!activeShift ? (
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.startButton]}
+                  onPress={handleStartShift}
+                >
                   <IconSymbol
                     ios_icon_name="play.circle.fill"
-                    android_material_icon_name="play-circle-filled"
-                    size={24}
+                    android_material_icon_name="play-arrow"
+                    size={32}
                     color="#FFFFFF"
                   />
-                  <Text style={styles.primaryButtonText}>Début de shift</Text>
+                  <Text style={styles.actionButtonText}>Début de shift</Text>
                 </TouchableOpacity>
               ) : (
-                <>
-                  <View style={styles.shiftActionsCard}>
-                    <Text style={styles.shiftActionsTitle}>Actions obligatoires</Text>
-                    
-                    <TouchableOpacity 
-                      style={styles.actionButton}
-                      onPress={() => router.push(`/inspection?shiftId=${activeShift.id}&type=departure`)}
-                    >
-                      <IconSymbol
-                        ios_icon_name="checkmark.circle"
-                        android_material_icon_name="check-circle"
-                        size={24}
-                        color={colors.primary}
-                      />
-                      <Text style={styles.actionButtonText}>Inspection d&apos;équipement (Départ)</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
-                      style={styles.actionButton}
-                      onPress={() => router.push(`/battery-record?shiftId=${activeShift.id}&type=departure`)}
-                    >
-                      <IconSymbol
-                        ios_icon_name="battery.100"
-                        android_material_icon_name="battery-full"
-                        size={24}
-                        color={colors.primary}
-                      />
-                      <Text style={styles.actionButtonText}>Nombre de batteries au départ</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <TouchableOpacity style={styles.endButton} onPress={handleEndShift}>
-                    <IconSymbol
-                      ios_icon_name="stop.circle.fill"
-                      android_material_icon_name="stop-circle"
-                      size={24}
-                      color="#FFFFFF"
-                    />
-                    <Text style={styles.endButtonText}>Fin de shift</Text>
-                  </TouchableOpacity>
-                </>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.endButton]}
+                  onPress={handleEndShift}
+                >
+                  <IconSymbol
+                    ios_icon_name="stop.circle.fill"
+                    android_material_icon_name="stop"
+                    size={32}
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.actionButtonText}>Fin de shift</Text>
+                </TouchableOpacity>
               )}
             </View>
-          )}
-        </View>
+
+            {activeShift ? (
+              <View style={styles.infoCard}>
+                <Text style={styles.infoTitle}>Informations du shift</Text>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Début:</Text>
+                  <Text style={styles.infoValue}>
+                    {new Date(activeShift.startTime).toLocaleString('fr-FR')}
+                  </Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Suivi GPS:</Text>
+                  <Text style={[styles.infoValue, { color: colors.success }]}>Actif</Text>
+                </View>
+              </View>
+            ) : null}
+          </>
+        )}
       </ScrollView>
 
       <Modal
-        visible={modal.visible}
-        onClose={() => setModal({ ...modal, visible: false })}
-        title={modal.title}
-        message={modal.message}
-        type={modal.type}
+        visible={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        title="Déconnexion"
+        message="Voulez-vous vraiment vous déconnecter ?"
+        type="confirm"
+        confirmText="Déconnexion"
+        cancelText="Annuler"
+        onConfirm={handleSignOut}
       />
     </SafeAreaView>
   );
@@ -246,104 +216,104 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  scrollView: {
-    flex: 1,
-  },
   content: {
-    padding: 20,
+    flex: 1,
+    padding: 16,
   },
-  header: {
-    marginBottom: 24,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
   },
-  welcomeText: {
-    fontSize: 18,
-    color: colors.textSecondary,
+  userCard: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  nameText: {
-    fontSize: 28,
+  userIconContainer: {
+    marginBottom: 12,
+  },
+  userName: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
+    marginBottom: 8,
   },
-  statusCard: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-    borderWidth: 2,
-  },
-  statusIndicator: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginRight: 12,
+  statusBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
   statusText: {
-    fontSize: 18,
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '600',
-    color: colors.text,
   },
-  loader: {
-    marginTop: 40,
+  errorContainer: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#DC2626',
+    fontSize: 14,
+    textAlign: 'center',
   },
   actionsContainer: {
-    gap: 16,
-  },
-  primaryButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  endButton: {
-    backgroundColor: colors.error,
-    borderRadius: 12,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  endButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  shiftActionsCard: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 20,
-  },
-  shiftActionsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
     marginBottom: 16,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    marginBottom: 12,
+    justifyContent: 'center',
+    padding: 20,
+    borderRadius: 12,
     gap: 12,
   },
-  actionButtonText: {
-    fontSize: 16,
-    color: colors.text,
-    flex: 1,
+  startButton: {
+    backgroundColor: colors.success,
   },
-  signOutButton: {
-    marginRight: 16,
+  endButton: {
+    backgroundColor: colors.error,
+  },
+  actionButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  infoCard: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+  },
+  infoTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  infoValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.text,
+  },
+  logoutButton: {
+    marginRight: 8,
+    padding: 8,
   },
 });
