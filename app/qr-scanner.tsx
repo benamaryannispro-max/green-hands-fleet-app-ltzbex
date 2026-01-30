@@ -13,7 +13,7 @@ import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import Modal from '@/components/ui/Modal';
 import { authenticatedGet } from '@/utils/api';
-import { BarCodeScanner } from 'expo-barcode-scanner';
+import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
 
 interface VehicleData {
   vehicle: {
@@ -37,33 +37,29 @@ interface VehicleData {
 
 export default function QRScannerScreen() {
   const router = useRouter();
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [vehicleData, setVehicleData] = useState<VehicleData | null>(null);
 
   useEffect(() => {
-    requestCameraPermission();
-  }, []);
+    if (permission && !permission.granted) {
+      console.log('[QRScanner] Camera permission not granted, requesting...');
+      requestPermission();
+    }
+  }, [permission]);
 
-  const requestCameraPermission = async () => {
-    console.log('Requesting camera permission...');
-    const { status } = await BarCodeScanner.requestPermissionsAsync();
-    const granted = status === 'granted';
-    console.log('Camera permission:', granted ? 'granted' : 'denied');
-    setHasPermission(granted);
-  };
-
-  const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
+  const handleBarCodeScanned = async (result: BarcodeScanningResult) => {
+    const data = result.data;
     console.log('[QRScanner] QR code scanned:', data);
     setScanned(true);
     setLoading(true);
 
     try {
-      const result = await authenticatedGet<VehicleData>(`/api/vehicles/qr/${data}`);
-      console.log('[QRScanner] Vehicle data loaded:', result);
-      setVehicleData(result);
+      const vehicleResult = await authenticatedGet<VehicleData>(`/api/vehicles/qr/${data}`);
+      console.log('[QRScanner] Vehicle data loaded:', vehicleResult);
+      setVehicleData(vehicleResult);
     } catch (err: any) {
       console.error('[QRScanner] Error loading vehicle data:', err);
       setError(err.message || 'Véhicule non trouvé');
@@ -73,12 +69,13 @@ export default function QRScannerScreen() {
   };
 
   const handleScanAgain = () => {
+    console.log('[QRScanner] Resetting scanner for new scan');
     setScanned(false);
     setVehicleData(null);
     setError('');
   };
 
-  if (hasPermission === null) {
+  if (!permission) {
     return (
       <SafeAreaView style={styles.container}>
         <Stack.Screen
@@ -92,13 +89,13 @@ export default function QRScannerScreen() {
         />
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.messageText}>Demande d&apos;autorisation...</Text>
+          <Text style={styles.messageText}>Chargement de la caméra...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  if (hasPermission === false) {
+  if (!permission.granted) {
     return (
       <SafeAreaView style={styles.container}>
         <Stack.Screen
@@ -123,9 +120,9 @@ export default function QRScannerScreen() {
           </Text>
           <TouchableOpacity
             style={styles.button}
-            onPress={requestCameraPermission}
+            onPress={requestPermission}
           >
-            <Text style={styles.buttonText}>Réessayer</Text>
+            <Text style={styles.buttonText}>Autoriser la caméra</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -146,9 +143,13 @@ export default function QRScannerScreen() {
 
       {!scanned && (
         <View style={styles.scannerContainer}>
-          <BarCodeScanner
-            onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
+          <CameraView
             style={StyleSheet.absoluteFillObject}
+            facing="back"
+            barcodeScannerSettings={{
+              barcodeTypes: ['qr'],
+            }}
+            onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
           />
           <View style={styles.overlay}>
             <View style={styles.scanArea}>
