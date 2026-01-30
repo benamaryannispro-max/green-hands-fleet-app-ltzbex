@@ -19,7 +19,7 @@ import { apiPost } from '@/utils/api';
 import { setBearerToken } from '@/lib/auth';
 
 export default function LoginScreen() {
-  const { signInWithEmail, signUpWithEmail, loading } = useAuth();
+  const { signInWithEmail, signUpWithEmail, loading, fetchUser } = useAuth();
   const [activeTab, setActiveTab] = useState<'leader' | 'driver'>('leader');
   const [isSignUp, setIsSignUp] = useState(false);
   
@@ -30,7 +30,7 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
 
   const handleLeaderSignIn = async () => {
-    console.log('User tapped Team Leader Sign In button');
+    console.log('[LoginScreen] User tapped Team Leader Sign In button');
     setError('');
     
     if (!email || !password) {
@@ -45,17 +45,24 @@ export default function LoginScreen() {
 
     try {
       if (isSignUp) {
-        console.log('Attempting team leader sign up with:', email);
+        console.log('[LoginScreen] Attempting team leader sign up with:', email);
         await signUpWithEmail(email, password, name);
-        console.log('Team leader sign up successful, redirecting');
+        console.log('[LoginScreen] Team leader sign up successful');
       } else {
-        console.log('Attempting team leader sign in with:', email);
+        console.log('[LoginScreen] Attempting team leader sign in with:', email);
         await signInWithEmail(email, password);
-        console.log('Team leader sign in successful, redirecting');
+        console.log('[LoginScreen] Team leader sign in successful');
       }
+      
+      // Wait a bit and fetch user to ensure session is established
+      console.log('[LoginScreen] Waiting for session to be established...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await fetchUser();
+      
+      console.log('[LoginScreen] Redirecting to home');
       router.replace('/');
     } catch (err: any) {
-      console.error('Team leader auth error:', err);
+      console.error('[LoginScreen] Team leader auth error:', err);
       const errorMessage = err.message || 'Échec de la connexion';
       
       // Provide helpful error messages
@@ -70,7 +77,7 @@ export default function LoginScreen() {
   };
 
   const handleDriverSignIn = async () => {
-    console.log('User tapped Driver Sign In button with phone:', phone);
+    console.log('[LoginScreen] User tapped Driver Sign In button with phone:', phone);
     setError('');
     
     if (!phone) {
@@ -79,19 +86,19 @@ export default function LoginScreen() {
     }
 
     try {
-      console.log('Attempting driver sign in with phone:', phone);
+      console.log('[LoginScreen] Attempting driver sign in with phone:', phone);
       const response = await apiPost('/api/auth/sign-in/phone', { phone });
       
       if (response.session?.token) {
         // Store the bearer token
         await setBearerToken(response.session.token);
-        console.log('Driver sign in successful, redirecting');
+        console.log('[LoginScreen] Driver sign in successful, redirecting');
         router.replace('/');
       } else {
         setError('Échec de la connexion - session invalide');
       }
     } catch (err: any) {
-      console.error('Driver sign in error:', err);
+      console.error('[LoginScreen] Driver sign in error:', err);
       setError(err.message || 'Échec de la connexion - vérifiez que vous êtes approuvé');
     }
   };

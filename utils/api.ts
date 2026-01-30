@@ -1,235 +1,120 @@
-import Constants from "expo-constants";
-import { Platform } from "react-native";
-import * as SecureStore from "expo-secure-store";
-import { BEARER_TOKEN_KEY } from "@/lib/auth";
 
-/**
- * Backend URL is configured in app.json under expo.extra.backendUrl
- * It is set automatically when the backend is deployed
- */
-export const BACKEND_URL = Constants.expoConfig?.extra?.backendUrl || "";
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+import { getBearerToken } from '@/lib/auth';
 
-/**
- * Check if backend is properly configured
- */
-export const isBackendConfigured = (): boolean => {
-  return !!BACKEND_URL && BACKEND_URL.length > 0;
-};
+const API_URL = Constants.expoConfig?.extra?.backendUrl || '';
 
-/**
- * Get bearer token from platform-specific storage
- * Web: localStorage
- * Native: SecureStore
- *
- * @returns Bearer token or null if not found
- */
-export const getBearerToken = async (): Promise<string | null> => {
-  try {
-    if (Platform.OS === "web") {
-      return localStorage.getItem(BEARER_TOKEN_KEY);
-    } else {
-      return await SecureStore.getItemAsync(BEARER_TOKEN_KEY);
+console.log('[API] Backend URL:', API_URL);
+
+interface RequestOptions extends RequestInit {
+  params?: Record<string, string | number | boolean>;
+}
+
+async function request<T>(
+  endpoint: string,
+  options: RequestOptions = {}
+): Promise<T> {
+  const { params, ...fetchOptions } = options;
+
+  let url = `${API_URL}${endpoint}`;
+
+  // Add query parameters if provided
+  if (params) {
+    const queryString = new URLSearchParams(
+      Object.entries(params).reduce((acc, [key, value]) => {
+        acc[key] = String(value);
+        return acc;
+      }, {} as Record<string, string>)
+    ).toString();
+    if (queryString) {
+      url += `?${queryString}`;
     }
-  } catch (error) {
-    console.error("[API] Error retrieving bearer token:", error);
-    return null;
-  }
-};
-
-/**
- * Generic API call helper with error handling
- *
- * @param endpoint - API endpoint path (e.g., '/users', '/auth/login')
- * @param options - Fetch options (method, headers, body, etc.)
- * @returns Parsed JSON response
- * @throws Error if backend is not configured or request fails
- */
-export const apiCall = async <T = any>(
-  endpoint: string,
-  options?: RequestInit
-): Promise<T> => {
-  if (!isBackendConfigured()) {
-    throw new Error("Backend URL not configured. Please rebuild the app.");
   }
 
-  const url = `${BACKEND_URL}${endpoint}`;
-  console.log("[API] Calling:", url, options?.method || "GET");
-
-  try {
-    const fetchOptions: RequestInit = {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...options?.headers,
-      },
-    };
-
-    console.log("[API] Fetch options:", fetchOptions);
-
-    // Always send the token if we have it (needed for cross-domain/iframe support)
-    const token = await getBearerToken();
-    if (token) {
-      fetchOptions.headers = {
-        ...fetchOptions.headers,
-        Authorization: `Bearer ${token}`,
-      };
-    }
-
-    const response = await fetch(url, fetchOptions);
-
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("[API] Error response:", response.status, text);
-      throw new Error(`API error: ${response.status} - ${text}`);
-    }
-
-    const data = await response.json();
-    console.log("[API] Success:", data);
-    return data;
-  } catch (error) {
-    console.error("[API] Request failed:", error);
-    throw error;
-  }
-};
-
-/**
- * GET request helper
- */
-export const apiGet = async <T = any>(endpoint: string): Promise<T> => {
-  return apiCall<T>(endpoint, { method: "GET" });
-};
-
-/**
- * POST request helper
- */
-export const apiPost = async <T = any>(
-  endpoint: string,
-  data: any
-): Promise<T> => {
-  return apiCall<T>(endpoint, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-};
-
-/**
- * PUT request helper
- */
-export const apiPut = async <T = any>(
-  endpoint: string,
-  data: any
-): Promise<T> => {
-  return apiCall<T>(endpoint, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
-};
-
-/**
- * PATCH request helper
- */
-export const apiPatch = async <T = any>(
-  endpoint: string,
-  data: any
-): Promise<T> => {
-  return apiCall<T>(endpoint, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
-};
-
-/**
- * DELETE request helper
- * Always sends a body to avoid FST_ERR_CTP_EMPTY_JSON_BODY errors
- */
-export const apiDelete = async <T = any>(endpoint: string, data: any = {}): Promise<T> => {
-  return apiCall<T>(endpoint, {
-    method: "DELETE",
-    body: JSON.stringify(data),
-  });
-};
-
-/**
- * Authenticated API call helper
- * Automatically retrieves bearer token from storage and adds to Authorization header
- *
- * @param endpoint - API endpoint path
- * @param options - Fetch options (method, headers, body, etc.)
- * @returns Parsed JSON response
- * @throws Error if token not found or request fails
- */
-export const authenticatedApiCall = async <T = any>(
-  endpoint: string,
-  options?: RequestInit
-): Promise<T> => {
-  const token = await getBearerToken();
-
-  if (!token) {
-    throw new Error("Authentication token not found. Please sign in.");
+  console.log(`[API] ${options.method || 'GET'} ${url}`);
+  if (options.body) {
+    console.log('[API] Request body:', options.body);
   }
 
-  return apiCall<T>(endpoint, {
-    ...options,
+  const response = await fetch(url, {
+    ...fetchOptions,
+    credentials: Platform.OS === 'web' ? 'include' : 'same-origin',
     headers: {
-      ...options?.headers,
-      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...fetchOptions.headers,
     },
   });
-};
 
-/**
- * Authenticated GET request
- */
-export const authenticatedGet = async <T = any>(endpoint: string): Promise<T> => {
-  return authenticatedApiCall<T>(endpoint, { method: "GET" });
-};
+  console.log(`[API] Response status: ${response.status}`);
 
-/**
- * Authenticated POST request
- */
-export const authenticatedPost = async <T = any>(
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`[API] Error response:`, errorText);
+    throw new Error(`API Error: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log('[API] Response data:', data);
+  return data;
+}
+
+async function authenticatedRequest<T>(
   endpoint: string,
-  data: any
-): Promise<T> => {
-  return authenticatedApiCall<T>(endpoint, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-};
+  options: RequestOptions = {}
+): Promise<T> {
+  const token = await getBearerToken();
+  
+  console.log(`[API] Authenticated request to ${endpoint}, token present: ${!!token}`);
 
-/**
- * Authenticated PUT request
- */
-export const authenticatedPut = async <T = any>(
-  endpoint: string,
-  data: any
-): Promise<T> => {
-  return authenticatedApiCall<T>(endpoint, {
-    method: "PUT",
-    body: JSON.stringify(data),
+  return request<T>(endpoint, {
+    ...options,
+    headers: {
+      ...options.headers,
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
   });
-};
+}
 
-/**
- * Authenticated PATCH request
- */
-export const authenticatedPatch = async <T = any>(
-  endpoint: string,
-  data: any
-): Promise<T> => {
-  return authenticatedApiCall<T>(endpoint, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
-};
+// Public API methods (no authentication required)
+export const apiGet = <T>(endpoint: string, params?: Record<string, string | number | boolean>): Promise<T> =>
+  request<T>(endpoint, { method: 'GET', params });
 
-/**
- * Authenticated DELETE request
- * Always sends a body to avoid FST_ERR_CTP_EMPTY_JSON_BODY errors
- */
-export const authenticatedDelete = async <T = any>(endpoint: string, data: any = {}): Promise<T> => {
-  return authenticatedApiCall<T>(endpoint, {
-    method: "DELETE",
-    body: JSON.stringify(data),
+export const apiPost = <T>(endpoint: string, data?: unknown): Promise<T> =>
+  request<T>(endpoint, {
+    method: 'POST',
+    body: data ? JSON.stringify(data) : undefined,
   });
-};
+
+export const apiPut = <T>(endpoint: string, data?: unknown): Promise<T> =>
+  request<T>(endpoint, {
+    method: 'PUT',
+    body: data ? JSON.stringify(data) : undefined,
+  });
+
+export const apiDelete = <T>(endpoint: string): Promise<T> =>
+  request<T>(endpoint, { method: 'DELETE' });
+
+// Authenticated API methods (require bearer token)
+export const authenticatedGet = <T>(endpoint: string, params?: Record<string, string | number | boolean>): Promise<T> =>
+  authenticatedRequest<T>(endpoint, { method: 'GET', params });
+
+export const authenticatedPost = <T>(endpoint: string, data?: unknown): Promise<T> =>
+  authenticatedRequest<T>(endpoint, {
+    method: 'POST',
+    body: data ? JSON.stringify(data) : undefined,
+  });
+
+export const authenticatedPut = <T>(endpoint: string, data?: unknown): Promise<T> =>
+  authenticatedRequest<T>(endpoint, {
+    method: 'PUT',
+    body: data ? JSON.stringify(data) : undefined,
+  });
+
+export const authenticatedDelete = <T>(endpoint: string): Promise<T> =>
+  authenticatedRequest<T>(endpoint, { 
+    method: 'DELETE',
+    headers: {
+      // DELETE requests should not have Content-Type header if no body
+    }
+  });

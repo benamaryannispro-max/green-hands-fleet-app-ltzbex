@@ -1,7 +1,8 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Platform } from "react-native";
 import * as Linking from "expo-linking";
-import { authClient, setBearerToken, clearAuthTokens } from "@/lib/auth";
+import { authClient, setBearerToken, clearAuthTokens, getBearerToken } from "@/lib/auth";
 
 interface User {
   id: string;
@@ -103,19 +104,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchUser = async () => {
     try {
       setLoading(true);
+      console.log('[AuthContext] Fetching user session...');
       const session = await authClient.getSession();
+      console.log('[AuthContext] Session response:', session);
+      
       if (session?.data?.user) {
+        console.log('[AuthContext] User found:', session.data.user);
         setUser(session.data.user as User);
         // Sync token to SecureStore for utils/api.ts
         if (session.data.session?.token) {
+          console.log('[AuthContext] Storing bearer token');
           await setBearerToken(session.data.session.token);
         }
       } else {
+        console.log('[AuthContext] No user in session');
         setUser(null);
         await clearAuthTokens();
       }
     } catch (error) {
-      console.error("Failed to fetch user:", error);
+      console.error("[AuthContext] Failed to fetch user:", error);
       setUser(null);
     } finally {
       setLoading(false);
@@ -124,25 +131,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithEmail = async (email: string, password: string) => {
     try {
-      await authClient.signIn.email({ email, password });
+      console.log('[AuthContext] Signing in with email:', email);
+      const result = await authClient.signIn.email({ 
+        email, 
+        password,
+        fetchOptions: {
+          onSuccess: async (ctx) => {
+            console.log('[AuthContext] Sign in success callback:', ctx);
+          },
+          onError: (ctx) => {
+            console.error('[AuthContext] Sign in error callback:', ctx);
+          }
+        }
+      });
+      console.log('[AuthContext] Sign in result:', result);
+      
+      // Wait a bit for the session to be established
+      await new Promise(resolve => setTimeout(resolve, 500));
       await fetchUser();
     } catch (error) {
-      console.error("Email sign in failed:", error);
+      console.error("[AuthContext] Email sign in failed:", error);
       throw error;
     }
   };
 
   const signUpWithEmail = async (email: string, password: string, name?: string) => {
     try {
+      console.log('[AuthContext] Signing up with email:', email);
       await authClient.signUp.email({
         email,
         password,
         name,
-        // Ensure name is passed in header or logic if required, usually passed in body
       });
+      // Wait a bit for the session to be established
+      await new Promise(resolve => setTimeout(resolve, 500));
       await fetchUser();
     } catch (error) {
-      console.error("Email sign up failed:", error);
+      console.error("[AuthContext] Email sign up failed:", error);
       throw error;
     }
   };
@@ -169,7 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await fetchUser();
       }
     } catch (error) {
-      console.error(`${provider} sign in failed:`, error);
+      console.error(`[AuthContext] ${provider} sign in failed:`, error);
       throw error;
     }
   };
@@ -180,11 +205,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
+      console.log('[AuthContext] Signing out...');
       await authClient.signOut();
     } catch (error) {
-      console.error("Sign out failed (API):", error);
+      console.error("[AuthContext] Sign out failed (API):", error);
     } finally {
        // Always clear local state
+       console.log('[AuthContext] Clearing local auth state');
        setUser(null);
        await clearAuthTokens();
     }

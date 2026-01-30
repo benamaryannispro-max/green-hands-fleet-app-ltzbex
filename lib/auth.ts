@@ -1,3 +1,4 @@
+
 import { createAuthClient } from "better-auth/react";
 import { expoClient } from "@better-auth/expo/client";
 import * as SecureStore from "expo-secure-store";
@@ -26,14 +27,10 @@ export const authClient = createAuthClient({
       storage,
     }),
   ],
-  // On web, use cookies (credentials: include) and fallback to bearer token
+  // On web, use cookies with credentials: include
   ...(Platform.OS === "web" && {
     fetchOptions: {
-      credentials: "include",
-      auth: {
-        type: "Bearer" as const,
-        token: () => localStorage.getItem(BEARER_TOKEN_KEY) || "",
-      },
+      credentials: "include" as RequestCredentials,
     },
   }),
 });
@@ -46,9 +43,26 @@ export async function setBearerToken(token: string) {
   }
 }
 
+export async function getBearerToken(): Promise<string | null> {
+  if (Platform.OS === "web") {
+    return localStorage.getItem(BEARER_TOKEN_KEY);
+  } else {
+    return await SecureStore.getItemAsync(BEARER_TOKEN_KEY);
+  }
+}
+
 export async function clearAuthTokens() {
   if (Platform.OS === "web") {
     localStorage.removeItem(BEARER_TOKEN_KEY);
+    // Clear all Better Auth related items
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('greenhands')) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
   } else {
     await SecureStore.deleteItemAsync(BEARER_TOKEN_KEY);
   }
