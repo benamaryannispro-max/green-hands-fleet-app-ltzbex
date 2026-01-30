@@ -15,6 +15,7 @@ import * as uploadsRoutes from './routes/uploads.js';
 import * as alertsRoutes from './routes/alerts.js';
 import * as maintenanceManagementRoutes from './routes/maintenance-management.js';
 import * as reportsRoutes from './routes/reports.js';
+import * as authLoggingRoutes from './routes/auth-logging.js';
 
 // Merge schemas for full database type support
 const schema = { ...appSchema, ...authSchema };
@@ -33,25 +34,34 @@ app.withAuth();
 app.withStorage();
 
 // Create default team leader if it doesn't exist
+app.logger.info('Checking for default team leader test user (contact@thegreenhands.fr)');
 const existingAuthUser = await app.db.select().from(authSchema.user)
   .where(eq(authSchema.user.email, 'contact@thegreenhands.fr'))
   .limit(1);
 
 if (existingAuthUser.length === 0) {
-  app.logger.info('Creating default team leader test user');
+  app.logger.info('Test user not found in database. Creating default team leader test user...');
   try {
     const userId = randomUUID();
     const accountId = randomUUID();
 
+    app.logger.info(
+      { userId, accountId, email: 'contact@thegreenhands.fr' },
+      'Generated UUIDs for test user'
+    );
+
     // Create user in Better Auth (auth table)
+    app.logger.info('Creating user in auth schema');
     await app.db.insert(authSchema.user).values({
       id: userId,
       email: 'contact@thegreenhands.fr',
       name: 'Admin Test',
       emailVerified: true,
     });
+    app.logger.info({ userId }, 'User created in auth schema successfully');
 
     // Create corresponding entry in custom users table
+    app.logger.info('Creating user in app schema with team_leader role');
     await app.db.insert(appSchema.users).values({
       id: userId,
       email: 'contact@thegreenhands.fr',
@@ -61,8 +71,10 @@ if (existingAuthUser.length === 0) {
       isApproved: true,
       isActive: true,
     });
+    app.logger.info({ userId }, 'User created in app schema successfully');
 
     // Create account entry with password hash
+    app.logger.info('Hashing password and creating account entry');
     const bcrypt = await import('bcrypt');
     const hashedPassword = await bcrypt.hash('Lagrandeteam13', 10);
 
@@ -73,14 +85,40 @@ if (existingAuthUser.length === 0) {
       providerId: 'credential',
       password: hashedPassword,
     });
+    app.logger.info(
+      { userId, accountId, providerId: 'credential' },
+      'Account entry created with hashed password'
+    );
 
-    app.logger.info({ userId }, 'Default team leader test user created successfully');
+    app.logger.info(
+      {
+        userId,
+        email: 'contact@thegreenhands.fr',
+        role: 'team_leader',
+        isApproved: true,
+        isActive: true,
+      },
+      '✓ Default team leader test user created successfully'
+    );
   } catch (error) {
-    app.logger.warn({ err: error }, 'Could not create default team leader test user');
+    app.logger.error(
+      { err: error, email: 'contact@thegreenhands.fr' },
+      'Failed to create default team leader test user'
+    );
   }
 } else {
-  app.logger.info('Default team leader test user already exists');
+  app.logger.info(
+    {
+      userId: existingAuthUser[0].id,
+      email: existingAuthUser[0].email,
+      emailVerified: existingAuthUser[0].emailVerified,
+    },
+    '✓ Default team leader test user already exists in database'
+  );
 }
+
+// Register authentication logging first (hooks need to be registered early)
+authLoggingRoutes.register(app, app.fastify);
 
 // Register all route modules
 usersRoutes.register(app, app.fastify);
