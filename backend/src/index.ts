@@ -26,6 +26,7 @@ export const app = await createApplication(schema);
 export type App = typeof app;
 
 // Enable authentication with Better Auth
+// Better Auth automatically handles cookie configuration
 app.withAuth();
 
 // Enable file storage for uploads
