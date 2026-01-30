@@ -1,20 +1,21 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import type { App } from "../index.js";
+import { requireAuth } from "../utils/auth.js";
 
 export function register(app: App, fastify: FastifyInstance) {
-  const requireAuth = app.requireAuth();
+  const checkAuth = requireAuth(app);
 
   // POST /api/upload/video - Upload a video file
   fastify.post("/api/upload/video", async (request: FastifyRequest, reply: FastifyReply) => {
-    const session = await requireAuth(request, reply);
+    const session = await checkAuth(request, reply);
     if (!session) return;
 
-    app.logger.info({ userId: session.user.id }, 'Uploading video');
+    app.logger.info({ userId: session.userId }, 'Uploading video');
 
     try {
       const data = await request.file({ limits: { fileSize: 100 * 1024 * 1024 } }); // 100MB limit
       if (!data) {
-        app.logger.warn({ userId: session.user.id }, 'No video file provided');
+        app.logger.warn({ userId: session.userId }, 'No video file provided');
         return reply.status(400).send({ error: 'No video file provided' });
       }
 
@@ -22,7 +23,7 @@ export function register(app: App, fastify: FastifyInstance) {
       try {
         buffer = await data.toBuffer();
       } catch (err) {
-        app.logger.error({ err, userId: session.user.id }, 'Video file too large');
+        app.logger.error({ err, userId: session.userId }, 'Video file too large');
         return reply.status(413).send({ error: 'Video file too large' });
       }
 
@@ -30,25 +31,25 @@ export function register(app: App, fastify: FastifyInstance) {
       const uploadedKey = await app.storage.upload(key, buffer);
       const { url } = await app.storage.getSignedUrl(uploadedKey);
 
-      app.logger.info({ userId: session.user.id, key: uploadedKey }, 'Video uploaded successfully');
+      app.logger.info({ userId: session.userId, key: uploadedKey }, 'Video uploaded successfully');
       return { url, key: uploadedKey };
     } catch (error) {
-      app.logger.error({ err: error, userId: session.user.id }, 'Failed to upload video');
+      app.logger.error({ err: error, userId: session.userId }, 'Failed to upload video');
       throw error;
     }
   });
 
   // POST /api/upload/photo - Upload a photo file
   fastify.post("/api/upload/photo", async (request: FastifyRequest, reply: FastifyReply) => {
-    const session = await requireAuth(request, reply);
+    const session = await checkAuth(request, reply);
     if (!session) return;
 
-    app.logger.info({ userId: session.user.id }, 'Uploading photo');
+    app.logger.info({ userId: session.userId }, 'Uploading photo');
 
     try {
       const data = await request.file({ limits: { fileSize: 20 * 1024 * 1024 } }); // 20MB limit
       if (!data) {
-        app.logger.warn({ userId: session.user.id }, 'No photo file provided');
+        app.logger.warn({ userId: session.userId }, 'No photo file provided');
         return reply.status(400).send({ error: 'No photo file provided' });
       }
 
@@ -56,7 +57,7 @@ export function register(app: App, fastify: FastifyInstance) {
       try {
         buffer = await data.toBuffer();
       } catch (err) {
-        app.logger.error({ err, userId: session.user.id }, 'Photo file too large');
+        app.logger.error({ err, userId: session.userId }, 'Photo file too large');
         return reply.status(413).send({ error: 'Photo file too large' });
       }
 
@@ -64,10 +65,10 @@ export function register(app: App, fastify: FastifyInstance) {
       const uploadedKey = await app.storage.upload(key, buffer);
       const { url } = await app.storage.getSignedUrl(uploadedKey);
 
-      app.logger.info({ userId: session.user.id, key: uploadedKey }, 'Photo uploaded successfully');
+      app.logger.info({ userId: session.userId, key: uploadedKey }, 'Photo uploaded successfully');
       return { url, key: uploadedKey };
     } catch (error) {
-      app.logger.error({ err: error, userId: session.user.id }, 'Failed to upload photo');
+      app.logger.error({ err: error, userId: session.userId }, 'Failed to upload photo');
       throw error;
     }
   });

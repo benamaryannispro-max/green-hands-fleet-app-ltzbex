@@ -3,24 +3,19 @@ import { eq, and, or } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import * as schema from "../db/schema.js";
 import type { App } from "../index.js";
+import { requireAuth, requireTeamLeaderOrAdmin, sessions } from "../utils/auth.js";
 
 export function register(app: App, fastify: FastifyInstance) {
-  const requireAuth = app.requireAuth();
-  const requireTeamLeaderOrAdmin = async (request: FastifyRequest, reply: FastifyReply) => {
-    const session = await requireAuth(request, reply);
-    if (!session) return null;
-    if (session.user.role !== 'team_leader' && session.user.role !== 'admin') {
-      app.logger.warn({ userId: session.user.id }, 'Unauthorized: requires team_leader or admin role');
-      reply.status(403).send({ error: 'Forbidden: requires team_leader or admin role' });
-      return null;
-    }
-    return session;
-  };
+  const checkAuth = requireAuth(app);
+  const checkTeamLeaderOrAdmin = requireTeamLeaderOrAdmin(app);
 
   // POST /api/users/drivers - Create a new driver
   fastify.post("/api/users/drivers", async (request: FastifyRequest, reply: FastifyReply) => {
-    const session = await requireTeamLeaderOrAdmin(request, reply);
+    const session = await checkAuth(request, reply);
     if (!session) return;
+
+    const sessionCheck = await checkTeamLeaderOrAdmin(request, reply, session);
+    if (!sessionCheck) return;
 
     const { phone, firstName, lastName } = request.body as { phone: string; firstName: string; lastName: string };
 
@@ -57,8 +52,11 @@ export function register(app: App, fastify: FastifyInstance) {
 
   // GET /api/users/drivers - Get all drivers grouped by status
   fastify.get("/api/users/drivers", async (request: FastifyRequest, reply: FastifyReply) => {
-    const session = await requireTeamLeaderOrAdmin(request, reply);
+    const session = await checkAuth(request, reply);
     if (!session) return;
+
+    const sessionCheck = await checkTeamLeaderOrAdmin(request, reply, session);
+    if (!sessionCheck) return;
 
     app.logger.info({}, 'Fetching drivers list');
 
@@ -79,81 +77,100 @@ export function register(app: App, fastify: FastifyInstance) {
 
   // PUT /api/users/drivers/:id/approve - Approve a driver
   fastify.put("/api/users/drivers/:id/approve", async (request: FastifyRequest, reply: FastifyReply) => {
-    const session = await requireTeamLeaderOrAdmin(request, reply);
+    const session = await checkAuth(request, reply);
     if (!session) return;
+
+    const sessionCheck = await checkTeamLeaderOrAdmin(request, reply, session);
+    if (!sessionCheck) return;
 
     const { id } = request.params as { id: string };
     app.logger.info({ driverId: id }, 'Approving driver');
 
     try {
-      const [updated] = await app.db.update(schema.users)
-        .set({ isApproved: true, updatedAt: new Date() })
+      const [updatedDriver] = await app.db.update(schema.users)
+        .set({ isApproved: true })
         .where(eq(schema.users.id, id))
         .returning();
 
-      if (!updated) {
-        app.logger.warn({ driverId: id }, 'Driver not found');
-        return reply.status(404).send({ error: 'Driver not found' });
-      }
-
-      app.logger.info({ driverId: id }, 'Driver approved successfully');
-      return updated;
+      app.logger.info({ driverId: updatedDriver.id }, 'Driver approved successfully');
+      return updatedDriver;
     } catch (error) {
       app.logger.error({ err: error, driverId: id }, 'Failed to approve driver');
       throw error;
     }
   });
 
-  // PUT /api/users/drivers/:id/revoke - Revoke driver (deactivate)
+  // PUT /api/users/drivers/:id/revoke - Revoke driver approval
   fastify.put("/api/users/drivers/:id/revoke", async (request: FastifyRequest, reply: FastifyReply) => {
-    const session = await requireTeamLeaderOrAdmin(request, reply);
+    const session = await checkAuth(request, reply);
     if (!session) return;
 
+    const sessionCheck = await checkTeamLeaderOrAdmin(request, reply, session);
+    if (!sessionCheck) return;
+
     const { id } = request.params as { id: string };
-    app.logger.info({ driverId: id }, 'Revoking driver');
+    app.logger.info({ driverId: id }, 'Revoking driver approval');
 
     try {
-      const [updated] = await app.db.update(schema.users)
-        .set({ isActive: false, updatedAt: new Date() })
+      const [updatedDriver] = await app.db.update(schema.users)
+        .set({ isApproved: false })
         .where(eq(schema.users.id, id))
         .returning();
 
-      if (!updated) {
-        app.logger.warn({ driverId: id }, 'Driver not found');
-        return reply.status(404).send({ error: 'Driver not found' });
-      }
-
-      app.logger.info({ driverId: id }, 'Driver revoked successfully');
-      return updated;
+      app.logger.info({ driverId: updatedDriver.id }, 'Driver approval revoked successfully');
+      return updatedDriver;
     } catch (error) {
-      app.logger.error({ err: error, driverId: id }, 'Failed to revoke driver');
+      app.logger.error({ err: error, driverId: id }, 'Failed to revoke driver approval');
       throw error;
     }
   });
 
-  // PUT /api/users/drivers/:id/restore - Restore a revoked driver
+  // PUT /api/users/drivers/:id/restore - Restore deleted driver
   fastify.put("/api/users/drivers/:id/restore", async (request: FastifyRequest, reply: FastifyReply) => {
-    const session = await requireTeamLeaderOrAdmin(request, reply);
+    const session = await checkAuth(request, reply);
     if (!session) return;
+
+    const sessionCheck = await checkTeamLeaderOrAdmin(request, reply, session);
+    if (!sessionCheck) return;
 
     const { id } = request.params as { id: string };
     app.logger.info({ driverId: id }, 'Restoring driver');
 
     try {
-      const [updated] = await app.db.update(schema.users)
-        .set({ isActive: true, updatedAt: new Date() })
+      const [updatedDriver] = await app.db.update(schema.users)
+        .set({ isActive: true })
         .where(eq(schema.users.id, id))
         .returning();
 
-      if (!updated) {
-        app.logger.warn({ driverId: id }, 'Driver not found');
-        return reply.status(404).send({ error: 'Driver not found' });
-      }
-
-      app.logger.info({ driverId: id }, 'Driver restored successfully');
-      return updated;
+      app.logger.info({ driverId: updatedDriver.id }, 'Driver restored successfully');
+      return updatedDriver;
     } catch (error) {
       app.logger.error({ err: error, driverId: id }, 'Failed to restore driver');
+      throw error;
+    }
+  });
+
+  // DELETE /api/users/drivers/:id - Soft delete driver
+  fastify.delete("/api/users/drivers/:id", async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await checkAuth(request, reply);
+    if (!session) return;
+
+    const sessionCheck = await checkTeamLeaderOrAdmin(request, reply, session);
+    if (!sessionCheck) return;
+
+    const { id } = request.params as { id: string };
+    app.logger.info({ driverId: id }, 'Deleting driver');
+
+    try {
+      const [updatedDriver] = await app.db.update(schema.users)
+        .set({ isActive: false })
+        .where(eq(schema.users.id, id))
+        .returning();
+
+      app.logger.info({ driverId: updatedDriver.id }, 'Driver deleted successfully');
+      return updatedDriver;
+    } catch (error) {
+      app.logger.error({ err: error, driverId: id }, 'Failed to delete driver');
       throw error;
     }
   });

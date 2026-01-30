@@ -3,24 +3,19 @@ import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import * as schema from "../db/schema.js";
 import type { App } from "../index.js";
+import { requireAuth, requireDriver } from "../utils/auth.js";
 
 export function register(app: App, fastify: FastifyInstance) {
-  const requireAuth = app.requireAuth();
-  const requireDriver = async (request: FastifyRequest, reply: FastifyReply) => {
-    const session = await requireAuth(request, reply);
-    if (!session) return null;
-    if (session.user.role !== 'driver') {
-      app.logger.warn({ userId: session.user.id }, 'Unauthorized: requires driver role');
-      reply.status(403).send({ error: 'Forbidden: requires driver role' });
-      return null;
-    }
-    return session;
-  };
+  const checkAuth = requireAuth(app);
+  const checkDriver = requireDriver(app);
 
   // POST /api/inspections - Create a new inspection
   fastify.post("/api/inspections", async (request: FastifyRequest, reply: FastifyReply) => {
-    const session = await requireDriver(request, reply);
+    const session = await checkAuth(request, reply);
     if (!session) return;
+
+    const sessionCheck = await checkDriver(request, reply, session);
+    if (!sessionCheck) return;
 
     const body = request.body as {
       shiftId: string;
@@ -53,8 +48,8 @@ export function register(app: App, fastify: FastifyInstance) {
         return reply.status(404).send({ error: 'Shift not found' });
       }
 
-      if (shift[0].driverId !== session.user.id) {
-        app.logger.warn({ shiftId: body.shiftId, userId: session.user.id }, 'Driver does not own this shift');
+      if (shift[0].driverId !== session.userId) {
+        app.logger.warn({ shiftId: body.shiftId, userId: session.userId }, 'Driver does not own this shift');
         return reply.status(403).send({ error: 'Forbidden: you can only inspect your own shifts' });
       }
 
@@ -77,13 +72,11 @@ export function register(app: App, fastify: FastifyInstance) {
         return reply.status(400).send({ error: 'Invalid inspection data: each present item requires photo, each absent item requires comment' });
       }
 
-      // For departure, video is required
-      if (body.type === 'departure' && !body.videoUrl) {
-        app.logger.warn({ shiftId: body.shiftId }, 'Departure inspection requires video');
-        return reply.status(400).send({ error: 'Departure inspection requires video' });
-      }
+      // Check if all items are present
+      const allItemsPresent = body.trousseSecours && body.roueSecours && body.extincteur && body.boosterBatterie;
 
       const [inspection] = await app.db.insert(schema.inspections).values({
+        id: randomUUID(),
         shiftId: body.shiftId,
         type: body.type,
         videoUrl: body.videoUrl || null,
@@ -102,52 +95,14 @@ export function register(app: App, fastify: FastifyInstance) {
         completedAt: new Date(),
       }).returning();
 
-      // Generate alerts for failed inspection or missing items
-      if (!body.trousseSecours || !body.roueSecours || !body.extincteur || !body.boosterBatterie) {
+      // Generate alert if inspection failed
+      if (!allItemsPresent) {
         await app.db.insert(schema.alerts).values({
           id: randomUUID(),
           type: 'inspection_failed',
-          title: `Inspection ${body.type} échouée - Articles manquants`,
-          message: `Inspection ${body.type} échouée: articles manquants détectés.`,
-          payload: { inspectionId: inspection.id, shiftId: body.shiftId, type: body.type },
-        });
-      }
-
-      // Generate alerts for each missing item
-      if (!body.trousseSecours) {
-        await app.db.insert(schema.alerts).values({
-          id: randomUUID(),
-          type: 'safety_item_missing',
-          title: 'Article de sécurité manquant: Trousse de secours',
-          message: 'La trousse de secours est manquante ou endommagée.',
-          payload: { inspectionId: inspection.id, shiftId: body.shiftId, itemName: 'Trousse de secours' },
-        });
-      }
-      if (!body.roueSecours) {
-        await app.db.insert(schema.alerts).values({
-          id: randomUUID(),
-          type: 'safety_item_missing',
-          title: 'Article de sécurité manquant: Roue de secours',
-          message: 'La roue de secours est manquante ou endommagée.',
-          payload: { inspectionId: inspection.id, shiftId: body.shiftId, itemName: 'Roue de secours' },
-        });
-      }
-      if (!body.extincteur) {
-        await app.db.insert(schema.alerts).values({
-          id: randomUUID(),
-          type: 'safety_item_missing',
-          title: 'Article de sécurité manquant: Extincteur',
-          message: "L'extincteur est manquant ou endommagé.",
-          payload: { inspectionId: inspection.id, shiftId: body.shiftId, itemName: 'Extincteur' },
-        });
-      }
-      if (!body.boosterBatterie) {
-        await app.db.insert(schema.alerts).values({
-          id: randomUUID(),
-          type: 'safety_item_missing',
-          title: 'Article de sécurité manquant: Booster batterie',
-          message: 'Le booster batterie est manquant ou endommagé.',
-          payload: { inspectionId: inspection.id, shiftId: body.shiftId, itemName: 'Booster batterie' },
+          title: `Inspection ${body.type} échouée`,
+          message: `L'inspection ${body.type} du véhicule a échoué. Des éléments de sécurité manquent.`,
+          payload: { shiftId: body.shiftId, inspectionId: inspection.id, type: body.type },
         });
       }
 
@@ -159,31 +114,15 @@ export function register(app: App, fastify: FastifyInstance) {
     }
   });
 
-  // GET /api/inspections/shift/:shiftId - Get inspections for a shift
-  fastify.get("/api/inspections/shift/:shiftId", async (request: FastifyRequest, reply: FastifyReply) => {
-    const session = await requireAuth(request, reply);
+  // GET /api/inspections/:shiftId - Get inspections for a shift
+  fastify.get("/api/inspections/:shiftId", async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await checkAuth(request, reply);
     if (!session) return;
 
     const { shiftId } = request.params as { shiftId: string };
-    app.logger.info({ shiftId, userId: session.user.id }, 'Fetching inspections for shift');
+    app.logger.info({ shiftId }, 'Fetching inspections');
 
     try {
-      // Verify shift exists
-      const shift = await app.db.select().from(schema.shifts)
-        .where(eq(schema.shifts.id, shiftId))
-        .limit(1);
-
-      if (shift.length === 0) {
-        app.logger.warn({ shiftId }, 'Shift not found');
-        return reply.status(404).send({ error: 'Shift not found' });
-      }
-
-      // Check authorization: drivers can only see their own, others can see all
-      if (session.user.role === 'driver' && shift[0].driverId !== session.user.id) {
-        app.logger.warn({ shiftId, userId: session.user.id }, 'Driver does not own this shift');
-        return reply.status(403).send({ error: 'Forbidden' });
-      }
-
       const inspections = await app.db.select().from(schema.inspections)
         .where(eq(schema.inspections.shiftId, shiftId));
 

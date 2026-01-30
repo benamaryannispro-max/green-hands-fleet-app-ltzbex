@@ -8,6 +8,7 @@ export const users = pgTable('users', {
   id: text('id').primaryKey(),
   email: text('email').unique(),
   phone: text('phone').unique(),
+  password: text('password'),
   firstName: text('first_name').notNull(),
   lastName: text('last_name').notNull(),
   role: text('role', { enum: ['driver', 'team_leader', 'admin'] }).notNull(),
