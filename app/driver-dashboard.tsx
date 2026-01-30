@@ -33,9 +33,13 @@ export default function DriverDashboardScreen() {
     try {
       setLoading(true);
       console.log('[DriverDashboard] Chargement du shift actif...');
-      const shift = await authenticatedGet<any>('/api/shifts/active');
-      setActiveShift(shift);
-      console.log('[DriverDashboard] Shift actif:', shift);
+      
+      // Get shift history and check if there's an active shift (one without endTime)
+      const shifts = await authenticatedGet<any[]>('/api/shifts/history');
+      const activeShiftData = shifts.find((shift: any) => !shift.endTime);
+      
+      setActiveShift(activeShiftData || null);
+      console.log('[DriverDashboard] Shift actif:', activeShiftData);
     } catch (err: any) {
       console.error('[DriverDashboard] Erreur lors du chargement du shift:', err);
       if (!err.message?.includes('404')) {

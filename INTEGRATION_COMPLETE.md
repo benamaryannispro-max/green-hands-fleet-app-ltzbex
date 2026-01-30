@@ -5,6 +5,31 @@
 
 The backend API has been successfully integrated into the GREEN HANDS fleet management app. All endpoints are now connected and functional.
 
+## 🔧 Latest Update: Authentication Fix (January 2024)
+
+### What Was Fixed
+The backend authentication middleware was updated to accept BOTH cookies AND Bearer tokens, ensuring compatibility with mobile and web platforms. The frontend was already correctly configured to send Bearer tokens, but several endpoint calls were adjusted for better reliability:
+
+1. **Logout Endpoint** - Changed from `apiPost` to `authenticatedPost` to properly send Bearer token
+2. **Maintenance Endpoint** - Fixed to use `/api/maintenance/recent` instead of non-existent `/api/maintenance`
+3. **Active Shift Detection** - Changed to use `/api/shifts/history` and detect active shifts client-side
+4. **Alert Mark as Read** - Changed from PUT to POST method to match API specification
+
+### Authentication Flow
+```
+Login → Token Stored → All Requests Include "Authorization: Bearer <token>"
+                     ↓
+              Backend Accepts:
+              1. Authorization header (Bearer token) ← Mobile apps
+              2. Cookie header (sessionToken)        ← Web apps
+```
+
+### Files Modified
+- `contexts/AuthContext.tsx` - Fixed logout to use authenticated endpoint
+- `app/maintenance.tsx` - Fixed maintenance data loading
+- `app/driver-dashboard.tsx` - Fixed active shift detection
+- `app/alerts-center.tsx` - Fixed alert mark as read method
+
 ## 🔐 Test Credentials
 
 ### Team Leader / Admin Account

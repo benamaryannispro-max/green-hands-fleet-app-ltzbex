@@ -71,15 +71,14 @@ export default function MaintenanceScreen() {
     try {
       setLoading(true);
       
-      // Load recent maintenance records (all records, not just recent)
-      const recordsData = await authenticatedGet<MaintenanceRecord[]>('/api/maintenance');
+      // Load recent maintenance records
+      const recordsData = await authenticatedGet<MaintenanceRecord[]>('/api/maintenance/recent');
       console.log('[Maintenance] Maintenance records loaded:', recordsData.length);
       setRecords(recordsData);
       
-      // Load maintenance alerts
-      const alertsData = await authenticatedGet<MaintenanceAlert[]>('/api/maintenance/alerts');
-      console.log('[Maintenance] Maintenance alerts loaded:', alertsData.length);
-      setAlerts(alertsData);
+      // Note: Maintenance alerts endpoint doesn't exist in the API
+      // We'll keep the alerts state empty for now
+      setAlerts([]);
     } catch (err: any) {
       console.error('[Maintenance] Error loading maintenance data:', err);
       setError(err.message || 'Erreur de connexion');

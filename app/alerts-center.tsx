@@ -77,7 +77,7 @@ export default function AlertsCenterScreen() {
   const handleMarkAsRead = async (alertId: string) => {
     console.log('[AlertsCenter] Marking alert as read:', alertId);
     try {
-      await authenticatedPut(`/api/alerts/${alertId}/read`, {});
+      await authenticatedPost(`/api/alerts/${alertId}/read`, {});
       setAlerts(prev => prev.map(alert => 
         alert.id === alertId ? { ...alert, readAt: new Date().toISOString() } : alert
       ));

@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Appeler l'endpoint de déconnexion (optionnel, pour invalider le token côté serveur)
       try {
-        await apiPost('/api/auth/sign-out', {});
+        await authenticatedPost('/api/auth/sign-out', {});
       } catch (error) {
         console.warn('[AuthContext] Erreur lors de l\'appel API de déconnexion (ignorée):', error);
       }

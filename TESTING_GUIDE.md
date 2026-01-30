@@ -1,6 +1,172 @@
 
 # 🧪 GREEN HANDS - Complete Testing Guide
 
+## 🔐 CRITICAL: Authentication Testing (Test First!)
+
+### ⚠️ Important Note
+The backend was recently updated to accept BOTH cookies AND Bearer tokens. The frontend sends Bearer tokens via the `Authorization` header. These tests verify the authentication system works correctly.
+
+### Test 1: Team Leader Login with Bearer Token
+**Purpose:** Verify Bearer token authentication works
+
+**Steps:**
+1. Open the app
+2. Select "Chef d'équipe" tab
+3. Click "📋 Remplir automatiquement" button
+4. Click "Se connecter"
+
+**Expected Console Logs:**
+```
+[LoginScreen] Tentative de connexion chef d'équipe
+[AuthContext] Connexion chef d'équipe avec: contact@thegreenhands.fr
+[API] POST https://...app.specular.dev/api/auth/sign-in/email
+[API] Response status: 200
+[AuthContext] Connexion réussie, stockage du token
+[Auth] Token Bearer stocké avec succès
+[AuthContext] Utilisateur connecté: { id: '...', email: '...', role: 'team_leader' }
+```
+
+**Expected Result:**
+- ✅ Login successful
+- ✅ Redirected to Leader Dashboard
+- ✅ No 401 errors
+
+**If Failed:**
+- Check backend is running
+- Check console for error messages
+- Verify credentials are correct
+
+---
+
+### Test 2: Session Persistence
+**Purpose:** Verify token is stored and restored on app reload
+
+**Steps:**
+1. Login successfully (Test 1)
+2. Close the app completely (force quit)
+3. Reopen the app
+
+**Expected Console Logs:**
+```
+[AuthContext] Vérification de la session...
+[AuthContext] Token trouvé, récupération de l'utilisateur...
+[API] Authenticated request to /api/auth/session, token present: true
+[API] Sending Authorization header: Bearer eyJhbGci...
+[API] GET https://...app.specular.dev/api/auth/session
+[API] Response status: 200
+[AuthContext] Utilisateur récupéré: { id: '...', email: '...', role: 'team_leader' }
+```
+
+**Expected Result:**
+- ✅ App automatically logs you in
+- ✅ Shows Leader Dashboard without login screen
+- ✅ No login screen appears
+
+**If Failed:**
+- Check if token is being saved
+- Check SecureStore permissions (mobile) or localStorage (web)
+- Try logging in again
+
+---
+
+### Test 3: Authenticated Endpoints with Bearer Token
+**Purpose:** Verify all protected endpoints accept Bearer token
+
+**Steps:**
+1. Login as team leader
+2. Click "Centre d'alertes"
+3. Wait for data to load
+4. Go back
+5. Click "Approbation" (Driver Management)
+6. Wait for data to load
+7. Go back
+8. Click "Véhicules"
+9. Wait for data to load
+
+**Expected Console Logs (for each screen):**
+```
+[API] Authenticated request to /api/..., token present: true
+[API] Sending Authorization header: Bearer eyJhbGci...
+[API] GET https://...app.specular.dev/api/...
+[API] Response status: 200
+```
+
+**Expected Result:**
+- ✅ All screens load without errors
+- ✅ No 401 Unauthorized errors
+- ✅ Data displays correctly
+- ✅ Bearer token is sent with every request
+
+**If Failed:**
+- Check console for 401 errors
+- Verify token is present in logs
+- Try logging out and logging in again
+
+---
+
+### Test 4: Logout with Bearer Token
+**Purpose:** Verify logout properly clears session
+
+**Steps:**
+1. Login successfully
+2. Click logout icon (top right)
+3. Confirm logout in modal
+4. Wait for redirect
+5. Close and reopen app
+
+**Expected Console Logs:**
+```
+[LeaderDashboard] Déconnexion...
+[AuthContext] Déconnexion...
+[API] Authenticated request to /api/auth/sign-out, token present: true
+[API] Sending Authorization header: Bearer eyJhbGci...
+[API] POST https://...app.specular.dev/api/auth/sign-out
+[API] Response status: 200
+[AuthContext] Effacement de l'état local
+[Auth] Tokens d'authentification effacés
+```
+
+**Expected Result:**
+- ✅ Redirected to login screen
+- ✅ Token is cleared
+- ✅ Reopening app shows login screen (not dashboard)
+
+**If Failed:**
+- Check if logout endpoint is called
+- Verify token is cleared
+- Check if user state is set to null
+
+---
+
+### Test 5: Driver Login with Bearer Token
+**Purpose:** Verify driver authentication works
+
+**Prerequisites:** Create and approve a driver first (see Scenario 1 below)
+
+**Steps:**
+1. Logout from team leader account
+2. Select "Chauffeur" tab
+3. Enter phone: `+33612345678`
+4. Click "Se connecter"
+
+**Expected Console Logs:**
+```
+[LoginScreen] Tentative de connexion chauffeur
+[AuthContext] Connexion chauffeur avec: +33612345678
+[API] POST https://...app.specular.dev/api/auth/sign-in/phone
+[API] Response status: 200
+[AuthContext] Connexion réussie, stockage du token
+[Auth] Token Bearer stocké avec succès
+[AuthContext] Utilisateur connecté: { id: '...', phone: '...', role: 'driver' }
+```
+
+**Expected Result:**
+- ✅ Login successful
+- ✅ Redirected to Driver Dashboard
+- ✅ No 401 errors
+
+---
+
 ## 🚀 Quick Start
 
 ### 1. Start the Development Server

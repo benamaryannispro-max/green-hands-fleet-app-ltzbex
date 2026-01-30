@@ -66,6 +66,9 @@ async function authenticatedRequest<T>(
   const token = await getBearerToken();
   
   console.log(`[API] Authenticated request to ${endpoint}, token present: ${!!token}`);
+  if (token) {
+    console.log(`[API] Sending Authorization header: Bearer ${token.substring(0, 10)}...`);
+  }
 
   return request<T>(endpoint, {
     ...options,
