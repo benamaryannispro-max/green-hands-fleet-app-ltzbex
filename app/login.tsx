@@ -28,9 +28,10 @@ export default function LoginScreen() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLeaderSignIn = async () => {
-    console.log('[LoginScreen] User tapped Team Leader Sign In button');
+    console.log('[LoginScreen] Utilisateur a cliqué sur Connexion Chef d\'équipe');
     setError('');
     
     if (!email || !password) {
@@ -43,41 +44,47 @@ export default function LoginScreen() {
       return;
     }
 
+    setIsLoading(true);
+
     try {
       if (isSignUp) {
-        console.log('[LoginScreen] Attempting team leader sign up with:', email);
+        console.log('[LoginScreen] Tentative d\'inscription chef d\'équipe avec:', email);
         await signUpWithEmail(email, password, name);
-        console.log('[LoginScreen] Team leader sign up successful');
+        console.log('[LoginScreen] Inscription chef d\'équipe réussie');
       } else {
-        console.log('[LoginScreen] Attempting team leader sign in with:', email);
+        console.log('[LoginScreen] Tentative de connexion chef d\'équipe avec:', email);
         await signInWithEmail(email, password);
-        console.log('[LoginScreen] Team leader sign in successful');
+        console.log('[LoginScreen] Connexion chef d\'équipe réussie');
       }
       
-      // Wait a bit and fetch user to ensure session is established
-      console.log('[LoginScreen] Waiting for session to be established...');
+      // Attendre un peu pour que la session soit établie
+      console.log('[LoginScreen] Attente de l\'établissement de la session...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       await fetchUser();
       
-      console.log('[LoginScreen] Redirecting to home');
+      console.log('[LoginScreen] Redirection vers l\'accueil');
       router.replace('/');
     } catch (err: any) {
-      console.error('[LoginScreen] Team leader auth error:', err);
+      console.error('[LoginScreen] Erreur d\'authentification chef d\'équipe:', err);
       const errorMessage = err.message || 'Échec de la connexion';
       
-      // Provide helpful error messages
-      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-        setError('Email ou mot de passe incorrect. Vérifiez vos identifiants.');
-      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-        setError('Erreur de connexion au serveur. Vérifiez votre connexion internet.');
+      // Messages d'erreur utiles en français
+      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized') || errorMessage.includes('Invalid')) {
+        setError('❌ Email ou mot de passe incorrect. Vérifiez vos identifiants.');
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('Failed to fetch')) {
+        setError('❌ Erreur de connexion au serveur. Vérifiez votre connexion internet.');
+      } else if (errorMessage.includes('User not found')) {
+        setError('❌ Aucun compte trouvé avec cet email. Créez un compte d\'abord.');
       } else {
-        setError(errorMessage);
+        setError(`❌ ${errorMessage}`);
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleDriverSignIn = async () => {
-    console.log('[LoginScreen] User tapped Driver Sign In button with phone:', phone);
+    console.log('[LoginScreen] Utilisateur a cliqué sur Connexion Chauffeur avec téléphone:', phone);
     setError('');
     
     if (!phone) {
@@ -85,26 +92,39 @@ export default function LoginScreen() {
       return;
     }
 
+    setIsLoading(true);
+
     try {
-      console.log('[LoginScreen] Attempting driver sign in with phone:', phone);
+      console.log('[LoginScreen] Tentative de connexion chauffeur avec téléphone:', phone);
       const response = await apiPost('/api/auth/sign-in/phone', { phone });
       
       if (response.session?.token) {
-        // Store the bearer token
+        // Stocker le token bearer
         await setBearerToken(response.session.token);
-        console.log('[LoginScreen] Driver sign in successful, redirecting');
+        console.log('[LoginScreen] Connexion chauffeur réussie, redirection');
         router.replace('/');
       } else {
-        setError('Échec de la connexion - session invalide');
+        setError('❌ Échec de la connexion - session invalide');
       }
     } catch (err: any) {
-      console.error('[LoginScreen] Driver sign in error:', err);
-      setError(err.message || 'Échec de la connexion - vérifiez que vous êtes approuvé');
+      console.error('[LoginScreen] Erreur de connexion chauffeur:', err);
+      const errorMessage = err.message || '';
+      
+      if (errorMessage.includes('not approved') || errorMessage.includes('pending')) {
+        setError('❌ Votre compte est en attente d\'approbation par un chef d\'équipe.');
+      } else if (errorMessage.includes('not found')) {
+        setError('❌ Aucun compte trouvé avec ce numéro. Contactez votre chef d\'équipe.');
+      } else {
+        setError(`❌ ${errorMessage || 'Échec de la connexion'}`);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const leaderTabActive = activeTab === 'leader';
   const driverTabActive = activeTab === 'driver';
+  const buttonDisabled = loading || isLoading;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -122,12 +142,19 @@ export default function LoginScreen() {
               <Text style={styles.subtitle}>Gestion de flotte</Text>
             </View>
 
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.error}>{error}</Text>
+              </View>
+            ) : null}
 
             <View style={styles.tabContainer}>
               <TouchableOpacity
                 style={[styles.tab, leaderTabActive && styles.tabActive]}
-                onPress={() => setActiveTab('leader')}
+                onPress={() => {
+                  setActiveTab('leader');
+                  setError('');
+                }}
               >
                 <Text style={[styles.tabText, leaderTabActive && styles.tabTextActive]}>
                   Chef d&apos;équipe
@@ -135,7 +162,10 @@ export default function LoginScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.tab, driverTabActive && styles.tabActive]}
-                onPress={() => setActiveTab('driver')}
+                onPress={() => {
+                  setActiveTab('driver');
+                  setError('');
+                }}
               >
                 <Text style={[styles.tabText, driverTabActive && styles.tabTextActive]}>
                   Chauffeur
@@ -156,7 +186,7 @@ export default function LoginScreen() {
                     placeholderTextColor={colors.grey}
                     value={name}
                     onChangeText={setName}
-                    editable={!loading}
+                    editable={!buttonDisabled}
                   />
                 ) : null}
 
@@ -168,7 +198,7 @@ export default function LoginScreen() {
                   onChangeText={setEmail}
                   autoCapitalize="none"
                   keyboardType="email-address"
-                  editable={!loading}
+                  editable={!buttonDisabled}
                 />
 
                 <TextInput
@@ -178,15 +208,15 @@ export default function LoginScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
-                  editable={!loading}
+                  editable={!buttonDisabled}
                 />
 
                 <TouchableOpacity
-                  style={[styles.button, loading && styles.buttonDisabled]}
+                  style={[styles.button, buttonDisabled && styles.buttonDisabled]}
                   onPress={handleLeaderSignIn}
-                  disabled={loading}
+                  disabled={buttonDisabled}
                 >
-                  {loading ? (
+                  {buttonDisabled ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
                     <Text style={styles.buttonText}>
@@ -201,7 +231,7 @@ export default function LoginScreen() {
                     setIsSignUp(!isSignUp);
                     setError('');
                   }}
-                  disabled={loading}
+                  disabled={buttonDisabled}
                 >
                   <Text style={styles.toggleButtonText}>
                     {isSignUp ? 'Déjà un compte ? Se connecter' : 'Pas de compte ? Créer un compte'}
@@ -209,9 +239,15 @@ export default function LoginScreen() {
                 </TouchableOpacity>
 
                 {!isSignUp ? (
-                  <Text style={styles.testCredentials}>
-                    Test: contact@thegreenhands.fr / Lagrandeteam13
-                  </Text>
+                  <View style={styles.testCredentialsContainer}>
+                    <Text style={styles.testCredentialsTitle}>🔑 Identifiants de test :</Text>
+                    <Text style={styles.testCredentials}>
+                      Email: contact@thegreenhands.fr
+                    </Text>
+                    <Text style={styles.testCredentials}>
+                      Mot de passe: Lagrandeteam13
+                    </Text>
+                  </View>
                 ) : null}
               </View>
             ) : (
@@ -224,24 +260,26 @@ export default function LoginScreen() {
                   value={phone}
                   onChangeText={setPhone}
                   keyboardType="phone-pad"
-                  editable={!loading}
+                  editable={!buttonDisabled}
                 />
 
                 <TouchableOpacity
-                  style={[styles.button, loading && styles.buttonDisabled]}
+                  style={[styles.button, buttonDisabled && styles.buttonDisabled]}
                   onPress={handleDriverSignIn}
-                  disabled={loading}
+                  disabled={buttonDisabled}
                 >
-                  {loading ? (
+                  {buttonDisabled ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
                     <Text style={styles.buttonText}>Se connecter</Text>
                   )}
                 </TouchableOpacity>
 
-                <Text style={styles.driverNote}>
-                  Note: Vous devez être approuvé par un chef d&apos;équipe
-                </Text>
+                <View style={styles.driverNoteContainer}>
+                  <Text style={styles.driverNote}>
+                    ℹ️ Note: Vous devez être approuvé par un chef d&apos;équipe pour accéder à l&apos;application.
+                  </Text>
+                </View>
               </View>
             )}
           </View>
@@ -347,24 +385,53 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  error: {
-    color: colors.error,
+  errorContainer: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 8,
+    padding: 12,
     marginBottom: 16,
-    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  error: {
+    color: '#DC2626',
     fontSize: 14,
+    textAlign: 'center',
+  },
+  testCredentialsContainer: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  testCredentialsTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 6,
+    textAlign: 'center',
   },
   testCredentials: {
-    marginTop: 16,
     fontSize: 12,
     color: colors.textSecondary,
     textAlign: 'center',
+    marginTop: 2,
+  },
+  driverNoteContainer: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   driverNote: {
-    marginTop: 16,
     fontSize: 12,
     color: colors.textSecondary,
     textAlign: 'center',
-    fontStyle: 'italic',
+    lineHeight: 18,
   },
   toggleButton: {
     marginTop: 12,
