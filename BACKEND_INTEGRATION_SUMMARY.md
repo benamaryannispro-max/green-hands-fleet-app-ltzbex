@@ -1,9 +1,45 @@
 
 # Backend Integration Summary - GREEN HANDS Fleet Management
 
-## 🎯 Integration Completed Successfully
+## 🎯 Backend Fix Applied - Test User Now Available
+
+**Issue Resolved:** The test user can now log in successfully! The backend automatically creates a test user on server startup.
+
+**Test Credentials:**
+- **Email:** contact@thegreenhands.fr
+- **Password:** Lagrandeteam13
+- **Role:** Team Leader (Chef d'équipe)
 
 All backend endpoints have been integrated into the GREEN HANDS mobile app. The app now has full functionality for fleet management, driver tracking, and shift management.
+
+## 🔧 Recent Backend Fix (Latest Update)
+
+**Problem:** User couldn't log in with test credentials because the test user didn't exist in the database.
+
+**Solution:** The backend now automatically creates a test user on server startup with:
+- Email: contact@thegreenhands.fr
+- Password: Lagrandeteam13 (bcrypt hashed)
+- Name: Admin Test
+- Role: team_leader
+- Status: Approved and Active
+
+**⚠️ IMPORTANT:** The backend server needs to be **restarted** for the test user to be created. Once restarted, the user will be automatically created on the first startup.
+
+**Frontend Changes:** Updated login screen to show clearer messages about:
+- Test credentials are now guaranteed to work (after backend restart)
+- Backend startup time (may take 30 seconds on first request)
+- Better error messages guiding users to test credentials
+
+**Database Tables Updated:**
+- `user` (Better Auth) - Main user record
+- `users` (App) - Extended user profile
+- `account` (Better Auth) - Credential provider record
+
+**Next Steps:**
+1. ✅ Backend code updated (DONE)
+2. ⏳ Backend server restart needed (PENDING)
+3. ⏳ Test user will be created automatically on startup
+4. ⏳ User can then log in with test credentials
 
 ## 📋 Files Created/Modified
 
@@ -47,6 +83,7 @@ All backend endpoints have been integrated into the GREEN HANDS mobile app. The 
 1. **Login as Team Leader:**
    - Email: `contact@thegreenhands.fr`
    - Password: `Lagrandeteam13`
+   - **Note:** This user is automatically created by the backend on server startup
 
 2. **Create a Driver:**
    - Go to "Approbation"

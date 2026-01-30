@@ -69,12 +69,12 @@ export default function LoginScreen() {
       const errorMessage = err.message || 'Échec de la connexion';
       
       // Messages d'erreur utiles en français
-      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized') || errorMessage.includes('Invalid')) {
-        setError('❌ Email ou mot de passe incorrect. Vérifiez vos identifiants.');
+      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized') || errorMessage.includes('Invalid') || errorMessage.includes('incorrect')) {
+        setError('❌ Email ou mot de passe incorrect. Vérifiez vos identifiants.\n\n💡 Astuce : Utilisez les identifiants de test affichés ci-dessous.\n\n⏳ Si le problème persiste, le backend est peut-être en cours de démarrage. Attendez 30 secondes et réessayez.');
       } else if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('Failed to fetch')) {
-        setError('❌ Erreur de connexion au serveur. Vérifiez votre connexion internet.');
+        setError('❌ Erreur de connexion au serveur. Vérifiez votre connexion internet.\n\n⏳ Le backend est peut-être en cours de démarrage. Attendez 30 secondes et réessayez.');
       } else if (errorMessage.includes('User not found')) {
-        setError('❌ Aucun compte trouvé avec cet email. Créez un compte d\'abord.');
+        setError('❌ Aucun compte trouvé avec cet email.\n\n💡 Utilisez les identifiants de test : contact@thegreenhands.fr / Lagrandeteam13');
       } else {
         setError(`❌ ${errorMessage}`);
       }
@@ -247,6 +247,12 @@ export default function LoginScreen() {
                     <Text style={styles.testCredentials}>
                       Mot de passe: Lagrandeteam13
                     </Text>
+                    <Text style={styles.testCredentialsNote}>
+                      ✅ Un utilisateur de test est créé automatiquement au démarrage du serveur.
+                    </Text>
+                    <Text style={styles.testCredentialsNote}>
+                      ⏳ Si la connexion échoue, le backend est peut-être en cours de démarrage. Attendez 30 secondes et réessayez.
+                    </Text>
                   </View>
                 ) : null}
               </View>
@@ -397,6 +403,7 @@ const styles = StyleSheet.create({
     color: '#DC2626',
     fontSize: 14,
     textAlign: 'center',
+    lineHeight: 20,
   },
   testCredentialsContainer: {
     marginTop: 16,
@@ -418,6 +425,14 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 2,
+  },
+  testCredentialsNote: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+    fontStyle: 'italic',
+    lineHeight: 16,
   },
   driverNoteContainer: {
     marginTop: 16,
