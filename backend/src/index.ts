@@ -33,14 +33,14 @@ app.withAuth();
 // Enable file storage for uploads
 app.withStorage();
 
-// Create default team leader if it doesn't exist
-app.logger.info('Checking for default team leader test user (contact@thegreenhands.fr)');
+// Create default admin test user if it doesn't exist
+app.logger.info('Checking for default admin test user (contact@thegreenhands.fr)');
 const existingAuthUser = await app.db.select().from(authSchema.user)
   .where(eq(authSchema.user.email, 'contact@thegreenhands.fr'))
   .limit(1);
 
 if (existingAuthUser.length === 0) {
-  app.logger.info('Test user not found in database. Creating default team leader test user...');
+  app.logger.info('Test user not found in database. Creating default admin test user...');
   try {
     const userId = randomUUID();
     const accountId = randomUUID();
@@ -60,7 +60,7 @@ if (existingAuthUser.length === 0) {
     const [newAuthUser] = await app.db.insert(authSchema.user).values({
       id: userId,
       email: 'contact@thegreenhands.fr',
-      name: 'Admin Test',
+      name: 'Green Hands',
       emailVerified: true,
     }).returning();
     app.logger.info({ userId: newAuthUser.id, email: newAuthUser.email }, 'User created in auth schema successfully');
@@ -80,13 +80,13 @@ if (existingAuthUser.length === 0) {
     );
 
     // Create corresponding entry in custom users table - THIRD
-    app.logger.info('Step 3: Creating user in app schema with team_leader role');
+    app.logger.info('Step 3: Creating user in app schema with admin role');
     const [newAppUser] = await app.db.insert(appSchema.users).values({
       id: userId,
       email: 'contact@thegreenhands.fr',
       firstName: 'Admin',
-      lastName: 'Test',
-      role: 'team_leader',
+      lastName: 'Green Hands',
+      role: 'admin',
       isApproved: true,
       isActive: true,
     }).returning();
@@ -96,13 +96,15 @@ if (existingAuthUser.length === 0) {
       {
         userId,
         email: 'contact@thegreenhands.fr',
-        name: 'Admin Test',
-        role: 'team_leader',
+        name: 'Green Hands',
+        firstName: 'Admin',
+        lastName: 'Green Hands',
+        role: 'admin',
         isApproved: true,
         isActive: true,
         emailVerified: true,
       },
-      '✓ DEFAULT TEST USER CREATED SUCCESSFULLY - Email: contact@thegreenhands.fr, Password: Lagrandeteam13'
+      '✓ DEFAULT ADMIN TEST USER CREATED SUCCESSFULLY - Email: contact@thegreenhands.fr, Password: Lagrandeteam13'
     );
   } catch (error) {
     app.logger.error(
@@ -111,7 +113,7 @@ if (existingAuthUser.length === 0) {
         message: error instanceof Error ? error.message : String(error),
         email: 'contact@thegreenhands.fr'
       },
-      'CRITICAL: Failed to create default team leader test user'
+      'CRITICAL: Failed to create default admin test user'
     );
   }
 } else {
@@ -121,7 +123,7 @@ if (existingAuthUser.length === 0) {
       email: existingAuthUser[0].email,
       emailVerified: existingAuthUser[0].emailVerified,
     },
-    '✓ DEFAULT TEST USER ALREADY EXISTS - Email: contact@thegreenhands.fr'
+    '✓ DEFAULT ADMIN TEST USER ALREADY EXISTS - Email: contact@thegreenhands.fr'
   );
 }
 
