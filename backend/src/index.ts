@@ -88,6 +88,34 @@ if (existingUser.length === 0) {
     },
     '✅ Utilisateur test déjà existant: contact@thegreenhands.fr'
   );
+
+  // FORCE password update for existing test user
+  app.logger.info('Resetting password for existing test user...');
+  try {
+    const bcrypt = await import('bcrypt');
+    const hashedPassword = await bcrypt.hash('Lagrandeteam13', 10);
+
+    await app.db.update(appSchema.users)
+      .set({ password: hashedPassword })
+      .where(eq(appSchema.users.id, existingUser[0].id));
+
+    app.logger.info(
+      {
+        userId: existingUser[0].id,
+        email: 'contact@thegreenhands.fr',
+      },
+      '✅ Mot de passe de l\'utilisateur test réinitialisé'
+    );
+  } catch (error) {
+    app.logger.error(
+      {
+        err: error,
+        message: error instanceof Error ? error.message : String(error),
+        userId: existingUser[0].id,
+      },
+      'CRITICAL: Failed to reset test user password'
+    );
+  }
 }
 
 // Register all route modules
