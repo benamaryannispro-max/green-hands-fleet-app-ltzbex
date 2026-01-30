@@ -50,19 +50,38 @@ if (existingAuthUser.length === 0) {
       'Generated UUIDs for test user'
     );
 
-    // Create user in Better Auth (auth table)
-    app.logger.info('Creating user in auth schema');
-    await app.db.insert(authSchema.user).values({
+    // Import bcrypt for password hashing
+    const bcrypt = await import('bcrypt');
+    const hashedPassword = await bcrypt.hash('Lagrandeteam13', 10);
+    app.logger.info('Password hashed successfully');
+
+    // Create user in Better Auth (auth table) - FIRST
+    app.logger.info('Step 1: Creating user in auth schema');
+    const [newAuthUser] = await app.db.insert(authSchema.user).values({
       id: userId,
       email: 'contact@thegreenhands.fr',
       name: 'Admin Test',
       emailVerified: true,
-    });
-    app.logger.info({ userId }, 'User created in auth schema successfully');
+    }).returning();
+    app.logger.info({ userId: newAuthUser.id, email: newAuthUser.email }, 'User created in auth schema successfully');
 
-    // Create corresponding entry in custom users table
-    app.logger.info('Creating user in app schema with team_leader role');
-    await app.db.insert(appSchema.users).values({
+    // Create account entry with password hash - SECOND (needs userId from user table)
+    app.logger.info('Step 2: Creating account entry with password');
+    const [newAccount] = await app.db.insert(authSchema.account).values({
+      id: accountId,
+      userId: userId,
+      accountId: 'credential_' + userId,
+      providerId: 'credential',
+      password: hashedPassword,
+    }).returning();
+    app.logger.info(
+      { accountId: newAccount.id, userId: newAccount.userId, providerId: newAccount.providerId },
+      'Account entry created with hashed password'
+    );
+
+    // Create corresponding entry in custom users table - THIRD
+    app.logger.info('Step 3: Creating user in app schema with team_leader role');
+    const [newAppUser] = await app.db.insert(appSchema.users).values({
       id: userId,
       email: 'contact@thegreenhands.fr',
       firstName: 'Admin',
@@ -70,40 +89,29 @@ if (existingAuthUser.length === 0) {
       role: 'team_leader',
       isApproved: true,
       isActive: true,
-    });
-    app.logger.info({ userId }, 'User created in app schema successfully');
-
-    // Create account entry with password hash
-    app.logger.info('Hashing password and creating account entry');
-    const bcrypt = await import('bcrypt');
-    const hashedPassword = await bcrypt.hash('Lagrandeteam13', 10);
-
-    await app.db.insert(authSchema.account).values({
-      id: accountId,
-      userId: userId,
-      accountId: userId,
-      providerId: 'credential',
-      password: hashedPassword,
-    });
-    app.logger.info(
-      { userId, accountId, providerId: 'credential' },
-      'Account entry created with hashed password'
-    );
+    }).returning();
+    app.logger.info({ userId: newAppUser.id, role: newAppUser.role }, 'User created in app schema successfully');
 
     app.logger.info(
       {
         userId,
         email: 'contact@thegreenhands.fr',
+        name: 'Admin Test',
         role: 'team_leader',
         isApproved: true,
         isActive: true,
+        emailVerified: true,
       },
-      '✓ Default team leader test user created successfully'
+      '✓ DEFAULT TEST USER CREATED SUCCESSFULLY - Email: contact@thegreenhands.fr, Password: Lagrandeteam13'
     );
   } catch (error) {
     app.logger.error(
-      { err: error, email: 'contact@thegreenhands.fr' },
-      'Failed to create default team leader test user'
+      {
+        err: error,
+        message: error instanceof Error ? error.message : String(error),
+        email: 'contact@thegreenhands.fr'
+      },
+      'CRITICAL: Failed to create default team leader test user'
     );
   }
 } else {
@@ -113,7 +121,7 @@ if (existingAuthUser.length === 0) {
       email: existingAuthUser[0].email,
       emailVerified: existingAuthUser[0].emailVerified,
     },
-    '✓ Default team leader test user already exists in database'
+    '✓ DEFAULT TEST USER ALREADY EXISTS - Email: contact@thegreenhands.fr'
   );
 }
 
