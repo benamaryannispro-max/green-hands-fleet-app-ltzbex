@@ -138,12 +138,33 @@ Cookie: sessionToken=random-token
 
 Les sessions sont stockées en mémoire (idéal pour développement/test). En production, utilisez Redis ou une base de données persistante.
 
-### Cookie de Session
+### Transmission du Token de Session
+
+Le token de session peut être transmis de **deux façons** (priorité donnée au Bearer token):
+
+#### 1. Authorization Header (Bearer Token) - Recommandé pour mobile
+```
+Authorization: Bearer <sessionToken>
+```
+
+Exemple:
+```
+Authorization: Bearer abc123def456ghi789
+```
+
+#### 2. Cookie HTTP - Recommandé pour web
 - **Nom**: `sessionToken`
 - **Durée**: 24 heures
 - **HTTP Only**: Oui
 - **Secure**: Non (dev mode)
-- **SameSite**: Implicite
+- **SameSite**: Lax
+
+Exemple:
+```
+Cookie: sessionToken=abc123def456ghi789
+```
+
+**Priorité**: Si les deux sont présents, le Bearer token est utilisé en priorité.
 
 ## Structure de la Table `users`
 
@@ -163,12 +184,34 @@ Les sessions sont stockées en mémoire (idéal pour développement/test). En pr
 }
 ```
 
+## Endpoints Protégés avec Bearer Token
+
+Tous les endpoints protégés acceptent le sessionToken soit via:
+- **Bearer Token** (recommandé pour applications mobiles)
+- **Cookie** (recommandé pour applications web)
+
+### Exemple avec Bearer Token:
+
+```bash
+curl -X GET http://localhost:3000/api/vehicles \
+  -H "Authorization: Bearer <sessionToken>"
+```
+
+### Exemple avec Cookie:
+
+```bash
+curl -X GET http://localhost:3000/api/vehicles \
+  -H "Cookie: sessionToken=<sessionToken>"
+```
+
+Les deux méthodes fonctionnent sur **tous** les endpoints authentifiés.
+
 ## Middleware d'Authentification
 
 Utilisé par tous les endpoints protégés.
 
 ### `requireAuth(app)`
-Vérifie qu'une session valide existe.
+Vérifie qu'une session valide existe (Bearer token ou Cookie).
 
 ### `requireDriver(app)`
 Vérifie que la session appartient à un chauffeur.

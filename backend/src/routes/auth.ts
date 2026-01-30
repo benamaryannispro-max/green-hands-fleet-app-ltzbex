@@ -215,8 +215,18 @@ export function register(app: App, fastify: FastifyInstance) {
    * Get current session information
    */
   fastify.get('/api/auth/session', async (request: FastifyRequest, reply: FastifyReply) => {
-    // Helper to extract session token from cookies
+    // Helper to extract session token from Authorization header (Bearer) or cookies
     const getSessionToken = (req: FastifyRequest): string | undefined => {
+      // 1. Check Authorization header for Bearer token
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.slice(7); // Remove "Bearer " prefix
+        if (token) {
+          return token;
+        }
+      }
+
+      // 2. Fall back to checking cookies
       const cookieHeader = req.headers.cookie;
       if (!cookieHeader) return undefined;
       const cookies = cookieHeader.split(';').map(c => c.trim());
@@ -286,8 +296,18 @@ export function register(app: App, fastify: FastifyInstance) {
    * Sign out the current user
    */
   fastify.post('/api/auth/sign-out', async (request: FastifyRequest, reply: FastifyReply) => {
-    // Import helper function
+    // Helper to extract session token from Authorization header (Bearer) or cookies
     const getSessionToken = (req: FastifyRequest): string | undefined => {
+      // 1. Check Authorization header for Bearer token
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.slice(7); // Remove "Bearer " prefix
+        if (token) {
+          return token;
+        }
+      }
+
+      // 2. Fall back to checking cookies
       const cookieHeader = req.headers.cookie;
       if (!cookieHeader) return undefined;
       const cookies = cookieHeader.split(';').map(c => c.trim());

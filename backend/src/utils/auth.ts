@@ -20,9 +20,20 @@ export interface Session {
 export const sessions = new Map<string, Session>();
 
 /**
- * Helper to extract session token from cookies
+ * Helper to extract session token from Authorization header (Bearer) or cookies
+ * Priority: Bearer token > Cookie
  */
 function getSessionToken(request: FastifyRequest): string | undefined {
+  // 1. Check Authorization header for Bearer token
+  const authHeader = request.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.slice(7); // Remove "Bearer " prefix
+    if (token) {
+      return token;
+    }
+  }
+
+  // 2. Fall back to checking cookies
   const cookieHeader = request.headers.cookie;
   if (!cookieHeader) return undefined;
 
