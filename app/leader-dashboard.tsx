@@ -110,7 +110,7 @@ export default function LeaderDashboardScreen() {
                 />
               </View>
               <Text style={styles.menuTitle}>Véhicules</Text>
-              <Text style={styles.menuDescription}>Gestion + QR</Text>
+              <Text style={styles.menuDescription}>Gestion de flotte</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 

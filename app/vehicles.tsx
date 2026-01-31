@@ -32,7 +32,6 @@ interface Vehicle {
   trousseSecours: boolean;
   carteRecharge: boolean;
   numeroCarteRecharge: string | null;
-  qrCode: string | null;
   createdAt: string;
 }
 
@@ -44,8 +43,6 @@ export default function VehiclesScreen() {
   const [error, setError] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [showQRModal, setShowQRModal] = useState(false);
-  const [qrData, setQrData] = useState<{ qrCode: string; qrImageUrl: string } | null>(null);
 
   const [formData, setFormData] = useState({
     immatriculation: '',
@@ -112,28 +109,6 @@ export default function VehiclesScreen() {
     }
   };
 
-  const handleGenerateQR = async (vehicleId: string) => {
-    console.log('[Vehicles] Generating QR code for vehicle:', vehicleId);
-    try {
-      // Note: The backend doesn't have a generate-qr endpoint yet
-      // For now, we'll simulate QR code generation
-      const qrCode = `VEHICLE-${vehicleId}-${Date.now()}`;
-      const data = { qrCode, qrImageUrl: '' };
-      console.log('[Vehicles] QR code generated:', data);
-      setQrData(data);
-      setShowQRModal(true);
-      
-      // TODO: When backend implements /api/vehicles/:id/generate-qr endpoint, uncomment:
-      // const data = await authenticatedPost<{ qrCode: string; qrImageUrl: string }>(`/api/vehicles/${vehicleId}/generate-qr`, {});
-      // setQrData(data);
-      // setShowQRModal(true);
-      // await loadVehicles();
-    } catch (err: any) {
-      console.error('[Vehicles] Error generating QR code:', err);
-      setError(err.message || 'Erreur de connexion');
-    }
-  };
-
   const resetForm = () => {
     setFormData({
       immatriculation: '',
@@ -151,10 +126,6 @@ export default function VehiclesScreen() {
     });
   };
 
-  const handleScanQR = () => {
-    router.push('/qr-scanner');
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen
@@ -164,16 +135,6 @@ export default function VehiclesScreen() {
           headerStyle: { backgroundColor: colors.primary },
           headerTintColor: '#FFFFFF',
           headerBackTitle: 'Retour',
-          headerRight: () => (
-            <TouchableOpacity onPress={handleScanQR} style={styles.scanButton}>
-              <IconSymbol
-                ios_icon_name="qrcode.viewfinder"
-                android_material_icon_name="qr-code-scanner"
-                size={24}
-                color="#FFFFFF"
-              />
-            </TouchableOpacity>
-          ),
         }}
       />
 
@@ -202,7 +163,6 @@ export default function VehiclesScreen() {
                 </View>
               ) : (
                 vehicles.map((vehicle) => {
-                  const hasQR = vehicle.qrCode !== null;
                   const fuelIcon = vehicle.carburant === 'électrique' ? 'electric-bolt' : 'local-gas-station';
                   
                   return (
@@ -225,16 +185,6 @@ export default function VehiclesScreen() {
                           <Text style={styles.vehicleName}>{vehicle.marque}</Text>
                           <Text style={styles.vehicleName}>{vehicle.modele}</Text>
                         </View>
-                        {hasQR && (
-                          <View style={styles.qrBadge}>
-                            <IconSymbol
-                              ios_icon_name="qrcode"
-                              android_material_icon_name="qr-code"
-                              size={20}
-                              color={colors.success}
-                            />
-                          </View>
-                        )}
                       </View>
                       <View style={styles.vehicleDetails}>
                         <View style={styles.detailRow}>
@@ -256,20 +206,6 @@ export default function VehiclesScreen() {
                           <Text style={styles.detailText}>{vehicle.dimensionsRoues}</Text>
                         </View>
                       </View>
-                      {!hasQR && (
-                        <TouchableOpacity
-                          style={styles.generateQRButton}
-                          onPress={() => handleGenerateQR(vehicle.id)}
-                        >
-                          <IconSymbol
-                            ios_icon_name="qrcode"
-                            android_material_icon_name="qr-code"
-                            size={20}
-                            color="#FFFFFF"
-                          />
-                          <Text style={styles.generateQRText}>Générer QR Code</Text>
-                        </TouchableOpacity>
-                      )}
                     </TouchableOpacity>
                   );
                 })
@@ -524,60 +460,7 @@ export default function VehiclesScreen() {
                 </View>
               )}
             </View>
-
-            {selectedVehicle.qrCode && (
-              <TouchableOpacity
-                style={styles.viewQRButton}
-                onPress={() => {
-                  setQrData({ qrCode: selectedVehicle.qrCode!, qrImageUrl: '' });
-                  setShowQRModal(true);
-                }}
-              >
-                <IconSymbol
-                  ios_icon_name="qrcode"
-                  android_material_icon_name="qr-code"
-                  size={20}
-                  color="#FFFFFF"
-                />
-                <Text style={styles.viewQRText}>Voir le QR Code</Text>
-              </TouchableOpacity>
-            )}
           </ScrollView>
-        )}
-      </Modal>
-
-      <Modal
-        visible={showQRModal}
-        onClose={() => {
-          setShowQRModal(false);
-          setQrData(null);
-        }}
-        title="QR Code du véhicule"
-      >
-        {qrData && (
-          <View style={styles.qrModal}>
-            <View style={styles.qrPlaceholder}>
-              <IconSymbol
-                ios_icon_name="qrcode"
-                android_material_icon_name="qr-code"
-                size={120}
-                color={colors.primary}
-              />
-              <Text style={styles.qrCode}>{qrData.qrCode}</Text>
-            </View>
-            <Text style={styles.qrInstructions}>
-              Scannez ce code QR pour accéder aux informations du véhicule
-            </Text>
-            <TouchableOpacity style={styles.shareButton}>
-              <IconSymbol
-                ios_icon_name="square.and.arrow.up"
-                android_material_icon_name="share"
-                size={20}
-                color="#FFFFFF"
-              />
-              <Text style={styles.shareButtonText}>Partager</Text>
-            </TouchableOpacity>
-          </View>
         )}
       </Modal>
 
@@ -661,18 +544,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
-  qrBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   vehicleDetails: {
     flexDirection: 'row',
     gap: 16,
-    marginBottom: 12,
   },
   detailRow: {
     flexDirection: 'row',
@@ -682,20 +556,6 @@ const styles = StyleSheet.create({
   detailText: {
     fontSize: 14,
     color: colors.textSecondary,
-  },
-  generateQRButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-    padding: 12,
-    gap: 8,
-  },
-  generateQRText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
   fab: {
     position: 'absolute',
@@ -712,9 +572,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
-  },
-  scanButton: {
-    marginRight: 16,
   },
   modalScroll: {
     maxHeight: 500,
@@ -806,13 +663,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 12,
   },
-  detailsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
   detailsLabel: {
     fontSize: 14,
     color: colors.textSecondary,
@@ -834,61 +684,6 @@ const styles = StyleSheet.create({
   equipmentText: {
     fontSize: 14,
     color: colors.text,
-  },
-  viewQRButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-    padding: 16,
-    gap: 8,
-    marginTop: 24,
-  },
-  viewQRText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  qrModal: {
-    alignItems: 'center',
-    padding: 20,
-  },
-  qrPlaceholder: {
-    width: 200,
-    height: 200,
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  qrCode: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 8,
-    fontFamily: 'monospace',
-  },
-  qrInstructions: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  shareButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-    padding: 16,
-    gap: 8,
-    width: '100%',
-  },
-  shareButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
   errorText: {
     fontSize: 16,
