@@ -1,20 +1,8 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { eq } from "drizzle-orm";
-import { randomUUID } from "crypto";
 import * as schema from "../db/schema.js";
 import type { App } from "../index.js";
 import { requireAuth, requireTeamLeaderOrAdmin } from "../utils/auth.js";
-import QRCode from 'qrcode';
-
-// Helper function to generate unique QR code
-function generateQRCode(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 12; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
 
 export function register(app: App, fastify: FastifyInstance) {
   const checkAuth = requireAuth(app);
@@ -28,27 +16,56 @@ export function register(app: App, fastify: FastifyInstance) {
     const sessionCheck = await checkTeamLeaderOrAdmin(request, reply, session);
     if (!sessionCheck) return;
 
-    const { name, licensePlate } = request.body as { name: string; licensePlate: string };
+    const {
+      immatriculation,
+      marque,
+      modele,
+      carburant,
+      dimensionsRoues,
+      roueSecours,
+      cric,
+      croix,
+      extincteur,
+      trousseSecours,
+      carteRecharge,
+      numeroCarteRecharge,
+    } = request.body as {
+      immatriculation: string;
+      marque: string;
+      modele: string;
+      carburant: string;
+      dimensionsRoues: string;
+      roueSecours?: boolean;
+      cric?: boolean;
+      croix?: boolean;
+      extincteur?: boolean;
+      trousseSecours?: boolean;
+      carteRecharge?: boolean;
+      numeroCarteRecharge?: string;
+    };
 
-    app.logger.info({ name, licensePlate }, 'Creating new vehicle');
+    app.logger.info({ immatriculation, marque, modele }, 'Creating new vehicle');
 
     try {
-      const vehicleId = randomUUID();
-      const qrCodeData = generateQRCode();
-      const qrCode = await QRCode.toDataURL(qrCodeData);
-
       const [vehicle] = await app.db.insert(schema.vehicles).values({
-        id: vehicleId,
-        name,
-        licensePlate,
-        qrCode,
-        status: 'available',
+        immatriculation,
+        marque,
+        modele,
+        carburant,
+        dimensionsRoues,
+        roueSecours: roueSecours ?? true,
+        cric: cric ?? true,
+        croix: croix ?? true,
+        extincteur: extincteur ?? true,
+        trousseSecours: trousseSecours ?? true,
+        carteRecharge: carteRecharge ?? true,
+        numeroCarteRecharge,
       }).returning();
 
-      app.logger.info({ vehicleId: vehicle.id, name }, 'Vehicle created successfully');
+      app.logger.info({ vehicleId: vehicle.id, immatriculation }, 'Vehicle created successfully');
       return vehicle;
     } catch (error) {
-      app.logger.error({ err: error, name, licensePlate }, 'Failed to create vehicle');
+      app.logger.error({ err: error, immatriculation, marque, modele }, 'Failed to create vehicle');
       throw error;
     }
   });
@@ -105,14 +122,50 @@ export function register(app: App, fastify: FastifyInstance) {
     if (!sessionCheck) return;
 
     const { id } = request.params as { id: string };
-    const { name, status } = request.body as { name?: string; status?: string };
+    const {
+      immatriculation,
+      marque,
+      modele,
+      carburant,
+      dimensionsRoues,
+      roueSecours,
+      cric,
+      croix,
+      extincteur,
+      trousseSecours,
+      carteRecharge,
+      numeroCarteRecharge,
+    } = request.body as {
+      immatriculation?: string;
+      marque?: string;
+      modele?: string;
+      carburant?: string;
+      dimensionsRoues?: string;
+      roueSecours?: boolean;
+      cric?: boolean;
+      croix?: boolean;
+      extincteur?: boolean;
+      trousseSecours?: boolean;
+      carteRecharge?: boolean;
+      numeroCarteRecharge?: string;
+    };
 
-    app.logger.info({ vehicleId: id, name, status }, 'Updating vehicle');
+    app.logger.info({ vehicleId: id, immatriculation }, 'Updating vehicle');
 
     try {
       const updates: Record<string, any> = {};
-      if (name) updates.name = name;
-      if (status) updates.status = status;
+      if (immatriculation) updates.immatriculation = immatriculation;
+      if (marque) updates.marque = marque;
+      if (modele) updates.modele = modele;
+      if (carburant) updates.carburant = carburant;
+      if (dimensionsRoues) updates.dimensionsRoues = dimensionsRoues;
+      if (roueSecours !== undefined) updates.roueSecours = roueSecours;
+      if (cric !== undefined) updates.cric = cric;
+      if (croix !== undefined) updates.croix = croix;
+      if (extincteur !== undefined) updates.extincteur = extincteur;
+      if (trousseSecours !== undefined) updates.trousseSecours = trousseSecours;
+      if (carteRecharge !== undefined) updates.carteRecharge = carteRecharge;
+      if (numeroCarteRecharge !== undefined) updates.numeroCarteRecharge = numeroCarteRecharge;
 
       const [updatedVehicle] = await app.db.update(schema.vehicles)
         .set(updates)

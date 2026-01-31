@@ -16,10 +16,18 @@ CREATE TABLE "users" (
 -- Create vehicles table
 CREATE TABLE "vehicles" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"name" text NOT NULL,
-	"license_plate" text NOT NULL UNIQUE,
-	"qr_code" text NOT NULL UNIQUE,
-	"status" text NOT NULL DEFAULT 'available',
+	"immatriculation" text NOT NULL,
+	"marque" text NOT NULL,
+	"modele" text NOT NULL,
+	"carburant" text NOT NULL,
+	"dimensions_roues" text NOT NULL,
+	"roue_secours" boolean NOT NULL DEFAULT true,
+	"cric" boolean NOT NULL DEFAULT true,
+	"croix" boolean NOT NULL DEFAULT true,
+	"extincteur" boolean NOT NULL DEFAULT true,
+	"trousse_secours" boolean NOT NULL DEFAULT true,
+	"carte_recharge" boolean NOT NULL DEFAULT true,
+	"numero_carte_recharge" text,
 	"created_at" timestamp NOT NULL DEFAULT now()
 );--> statement-breakpoint
 
@@ -132,7 +140,6 @@ ALTER TABLE "maintenance_alerts" ADD CONSTRAINT "maintenance_alerts_vehicle_id_v
 CREATE INDEX "users_email_idx" ON "users" USING btree ("email");--> statement-breakpoint
 CREATE INDEX "users_phone_idx" ON "users" USING btree ("phone");--> statement-breakpoint
 CREATE INDEX "users_role_idx" ON "users" USING btree ("role");--> statement-breakpoint
-CREATE INDEX "vehicles_status_idx" ON "vehicles" USING btree ("status");--> statement-breakpoint
 CREATE INDEX "shifts_driver_id_idx" ON "shifts" USING btree ("driver_id");--> statement-breakpoint
 CREATE INDEX "shifts_vehicle_id_idx" ON "shifts" USING btree ("vehicle_id");--> statement-breakpoint
 CREATE INDEX "shifts_status_idx" ON "shifts" USING btree ("status");--> statement-breakpoint

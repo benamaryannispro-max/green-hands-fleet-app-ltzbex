@@ -27,14 +27,20 @@ export const users = pgTable('users', {
 // ============================================
 export const vehicles = pgTable('vehicles', {
   id: uuid('id').primaryKey().defaultRandom(),
-  name: text('name').notNull(),
-  licensePlate: text('license_plate').notNull().unique(),
-  qrCode: text('qr_code').notNull().unique(),
-  status: text('status', { enum: ['available', 'in_use', 'maintenance'] }).notNull().default('available'),
+  immatriculation: text('immatriculation').notNull(),
+  marque: text('marque').notNull(),
+  modele: text('modele').notNull(),
+  carburant: text('carburant').notNull(),
+  dimensionsRoues: text('dimensions_roues').notNull(),
+  roueSecours: boolean('roue_secours').notNull().default(true),
+  cric: boolean('cric').notNull().default(true),
+  croix: boolean('croix').notNull().default(true),
+  extincteur: boolean('extincteur').notNull().default(true),
+  trousseSecours: boolean('trousse_secours').notNull().default(true),
+  carteRecharge: boolean('carte_recharge').notNull().default(true),
+  numeroCarteRecharge: text('numero_carte_recharge'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => [
-  index('vehicles_status_idx').on(table.status),
-]);
+});
 
 // ============================================
 // Shifts Table

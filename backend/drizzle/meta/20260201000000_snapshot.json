@@ -146,8 +146,8 @@
           "autoincrement": false,
           "default": "gen_random_uuid()"
         },
-        "name": {
-          "name": "name",
+        "immatriculation": {
+          "name": "immatriculation",
           "type": "text",
           "typeSchema": "",
           "primaryKey": false,
@@ -155,36 +155,104 @@
           "autoincrement": false,
           "default": null
         },
-        "license_plate": {
-          "name": "license_plate",
+        "marque": {
+          "name": "marque",
           "type": "text",
           "typeSchema": "",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": null,
-          "isUnique": true,
-          "uniqueName": "vehicles_license_plate_unique"
+          "default": null
         },
-        "qr_code": {
-          "name": "qr_code",
+        "modele": {
+          "name": "modele",
           "type": "text",
           "typeSchema": "",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": null,
-          "isUnique": true,
-          "uniqueName": "vehicles_qr_code_unique"
+          "default": null
         },
-        "status": {
-          "name": "status",
+        "carburant": {
+          "name": "carburant",
           "type": "text",
           "typeSchema": "",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'available'"
+          "default": null
+        },
+        "dimensions_roues": {
+          "name": "dimensions_roues",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "roue_secours": {
+          "name": "roue_secours",
+          "type": "boolean",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "true"
+        },
+        "cric": {
+          "name": "cric",
+          "type": "boolean",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "true"
+        },
+        "croix": {
+          "name": "croix",
+          "type": "boolean",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "true"
+        },
+        "extincteur": {
+          "name": "extincteur",
+          "type": "boolean",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "true"
+        },
+        "trousse_secours": {
+          "name": "trousse_secours",
+          "type": "boolean",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "true"
+        },
+        "carte_recharge": {
+          "name": "carte_recharge",
+          "type": "boolean",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "true"
+        },
+        "numero_carte_recharge": {
+          "name": "numero_carte_recharge",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
         },
         "created_at": {
           "name": "created_at",
@@ -196,13 +264,7 @@
           "default": "now()"
         }
       },
-      "indexes": {
-        "vehicles_status_idx": {
-          "name": "vehicles_status_idx",
-          "columns": ["status"],
-          "isUnique": false
-        }
-      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
