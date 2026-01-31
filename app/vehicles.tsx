@@ -115,11 +115,19 @@ export default function VehiclesScreen() {
   const handleGenerateQR = async (vehicleId: string) => {
     console.log('[Vehicles] Generating QR code for vehicle:', vehicleId);
     try {
-      const data = await authenticatedPost<{ qrCode: string; qrImageUrl: string }>(`/api/vehicles/${vehicleId}/generate-qr`, {});
+      // Note: The backend doesn't have a generate-qr endpoint yet
+      // For now, we'll simulate QR code generation
+      const qrCode = `VEHICLE-${vehicleId}-${Date.now()}`;
+      const data = { qrCode, qrImageUrl: '' };
       console.log('[Vehicles] QR code generated:', data);
       setQrData(data);
       setShowQRModal(true);
-      await loadVehicles();
+      
+      // TODO: When backend implements /api/vehicles/:id/generate-qr endpoint, uncomment:
+      // const data = await authenticatedPost<{ qrCode: string; qrImageUrl: string }>(`/api/vehicles/${vehicleId}/generate-qr`, {});
+      // setQrData(data);
+      // setShowQRModal(true);
+      // await loadVehicles();
     } catch (err: any) {
       console.error('[Vehicles] Error generating QR code:', err);
       setError(err.message || 'Erreur de connexion');

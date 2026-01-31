@@ -16,13 +16,13 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { authenticatedPost } from '@/utils/api';
 import Modal from '@/components/ui/Modal';
 
-type BatteryType = 'departure' | 'return';
+type BatteryType = 'depart' | 'retour';
 
 export default function BatteryRecordScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const shiftId = params.shiftId as string;
-  const type = (params.type as BatteryType) || 'departure';
+  const type = (params.type as BatteryType) || 'depart';
 
   const [count, setCount] = useState('');
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -101,7 +101,7 @@ export default function BatteryRecordScreen() {
     }
   };
 
-  const title = type === 'departure' ? 'Batteries au départ' : 'Batteries au retour';
+  const title = type === 'depart' ? 'Batteries au départ' : 'Batteries au retour';
 
   return (
     <SafeAreaView style={styles.container}>

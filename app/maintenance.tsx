@@ -125,11 +125,15 @@ export default function MaintenanceScreen() {
   const handleUpdateStatus = async (recordId: string, newStatus: 'à faire' | 'en cours' | 'terminé') => {
     console.log('[Maintenance] Updating maintenance status:', recordId, newStatus);
     try {
-      await authenticatedPut(`/api/maintenance/${recordId}`, { status: newStatus });
+      // Note: The backend doesn't have a PUT /api/maintenance/:id endpoint yet
+      // For now, we'll update locally only
       setRecords(prev => prev.map(record => 
         record.id === recordId ? { ...record, status: newStatus } : record
       ));
       setSelectedRecord(null);
+      
+      // TODO: When backend implements PUT /api/maintenance/:id endpoint, uncomment:
+      // await authenticatedPut(`/api/maintenance/${recordId}`, { status: newStatus });
     } catch (err: any) {
       console.error('[Maintenance] Error updating maintenance status:', err);
       setError(err.message || 'Erreur de connexion');

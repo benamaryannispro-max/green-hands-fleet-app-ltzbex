@@ -16,7 +16,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { authenticatedPost } from '@/utils/api';
 import Modal from '@/components/ui/Modal';
 
-type InspectionType = 'departure' | 'return';
+type InspectionType = 'depart' | 'retour';
 
 interface InspectionItem {
   key: string;
@@ -30,7 +30,7 @@ export default function InspectionScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const shiftId = params.shiftId as string;
-  const type = (params.type as InspectionType) || 'departure';
+  const type = (params.type as InspectionType) || 'depart';
 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [items, setItems] = useState<InspectionItem[]>([
@@ -145,7 +145,7 @@ export default function InspectionScreen() {
     }
   };
 
-  const title = type === 'departure' ? 'Inspection de départ' : 'Inspection de retour';
+  const title = type === 'depart' ? 'Inspection de départ' : 'Inspection de retour';
 
   return (
     <SafeAreaView style={styles.container}>
