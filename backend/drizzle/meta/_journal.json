@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1769708161446,
-      "tag": "20260129173601_lyrical_jazinda",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1769709160857,
-      "tag": "20260129175240_unknown_menace",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1769709717612,
-      "tag": "20260129180157_medical_white_tiger",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1769785878139,
-      "tag": "20260130151118_spooky_mandroid",
+      "when": 1770000000000,
+      "tag": "20260201000000_init_schema",
       "breakpoints": true
     }
   ]

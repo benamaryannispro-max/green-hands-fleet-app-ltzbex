@@ -1,0 +1,1056 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "id": "20260201000000_init_schema",
+  "prevId": "",
+  "tables": {
+    "users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null,
+          "isUnique": true,
+          "uniqueName": "users_email_unique"
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null,
+          "isUnique": true,
+          "uniqueName": "users_phone_unique"
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "is_approved": {
+          "name": "is_approved",
+          "type": "boolean",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "false"
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "true"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "users_email_idx": {
+          "name": "users_email_idx",
+          "columns": ["email"],
+          "isUnique": false
+        },
+        "users_phone_idx": {
+          "name": "users_phone_idx",
+          "columns": ["phone"],
+          "isUnique": false
+        },
+        "users_role_idx": {
+          "name": "users_role_idx",
+          "columns": ["role"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "vehicles": {
+      "name": "vehicles",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "typeSchema": "",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "license_plate": {
+          "name": "license_plate",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null,
+          "isUnique": true,
+          "uniqueName": "vehicles_license_plate_unique"
+        },
+        "qr_code": {
+          "name": "qr_code",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null,
+          "isUnique": true,
+          "uniqueName": "vehicles_qr_code_unique"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'available'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "vehicles_status_idx": {
+          "name": "vehicles_status_idx",
+          "columns": ["status"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "shifts": {
+      "name": "shifts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "typeSchema": "",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "gen_random_uuid()"
+        },
+        "driver_id": {
+          "name": "driver_id",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "vehicle_id": {
+          "name": "vehicle_id",
+          "type": "uuid",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "start_time": {
+          "name": "start_time",
+          "type": "timestamp",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "end_time": {
+          "name": "end_time",
+          "type": "timestamp",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'active'"
+        },
+        "start_battery_count": {
+          "name": "start_battery_count",
+          "type": "integer",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "end_battery_count": {
+          "name": "end_battery_count",
+          "type": "integer",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "shifts_driver_id_idx": {
+          "name": "shifts_driver_id_idx",
+          "columns": ["driver_id"],
+          "isUnique": false
+        },
+        "shifts_vehicle_id_idx": {
+          "name": "shifts_vehicle_id_idx",
+          "columns": ["vehicle_id"],
+          "isUnique": false
+        },
+        "shifts_status_idx": {
+          "name": "shifts_status_idx",
+          "columns": ["status"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "shifts_driver_id_users_id_fk": {
+          "name": "shifts_driver_id_users_id_fk",
+          "tableFrom": "shifts",
+          "tableTo": "users",
+          "columnsFrom": ["driver_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "shifts_vehicle_id_vehicles_id_fk": {
+          "name": "shifts_vehicle_id_vehicles_id_fk",
+          "tableFrom": "shifts",
+          "tableTo": "vehicles",
+          "columnsFrom": ["vehicle_id"],
+          "columnsTo": ["id"],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "inspections": {
+      "name": "inspections",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "typeSchema": "",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "gen_random_uuid()"
+        },
+        "shift_id": {
+          "name": "shift_id",
+          "type": "uuid",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "video_url": {
+          "name": "video_url",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "trousse_secours": {
+          "name": "trousse_secours",
+          "type": "boolean",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "trousse_secours_photo": {
+          "name": "trousse_secours_photo",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "trousse_secours_comment": {
+          "name": "trousse_secours_comment",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "roue_secours": {
+          "name": "roue_secours",
+          "type": "boolean",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "roue_secours_photo": {
+          "name": "roue_secours_photo",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "roue_secours_comment": {
+          "name": "roue_secours_comment",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "extincteur": {
+          "name": "extincteur",
+          "type": "boolean",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "extincteur_photo": {
+          "name": "extincteur_photo",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "extincteur_comment": {
+          "name": "extincteur_comment",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "booster_batterie": {
+          "name": "booster_batterie",
+          "type": "boolean",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "booster_batterie_photo": {
+          "name": "booster_batterie_photo",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "booster_batterie_comment": {
+          "name": "booster_batterie_comment",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        }
+      },
+      "indexes": {
+        "inspections_shift_id_idx": {
+          "name": "inspections_shift_id_idx",
+          "columns": ["shift_id"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "inspections_shift_id_shifts_id_fk": {
+          "name": "inspections_shift_id_shifts_id_fk",
+          "tableFrom": "inspections",
+          "tableTo": "shifts",
+          "columnsFrom": ["shift_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "battery_records": {
+      "name": "battery_records",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "typeSchema": "",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "gen_random_uuid()"
+        },
+        "shift_id": {
+          "name": "shift_id",
+          "type": "uuid",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "count": {
+          "name": "count",
+          "type": "integer",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "photo_url": {
+          "name": "photo_url",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "comment": {
+          "name": "comment",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "driver_signature": {
+          "name": "driver_signature",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "team_leader_signature": {
+          "name": "team_leader_signature",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "battery_records_shift_id_idx": {
+          "name": "battery_records_shift_id_idx",
+          "columns": ["shift_id"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "battery_records_shift_id_shifts_id_fk": {
+          "name": "battery_records_shift_id_shifts_id_fk",
+          "tableFrom": "battery_records",
+          "tableTo": "shifts",
+          "columnsFrom": ["shift_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "location_updates": {
+      "name": "location_updates",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "typeSchema": "",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "gen_random_uuid()"
+        },
+        "shift_id": {
+          "name": "shift_id",
+          "type": "uuid",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "driver_id": {
+          "name": "driver_id",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "latitude": {
+          "name": "latitude",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "longitude": {
+          "name": "longitude",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "accuracy": {
+          "name": "accuracy",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "timestamp": {
+          "name": "timestamp",
+          "type": "timestamp",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        }
+      },
+      "indexes": {
+        "location_updates_shift_id_idx": {
+          "name": "location_updates_shift_id_idx",
+          "columns": ["shift_id"],
+          "isUnique": false
+        },
+        "location_updates_driver_id_idx": {
+          "name": "location_updates_driver_id_idx",
+          "columns": ["driver_id"],
+          "isUnique": false
+        },
+        "location_updates_timestamp_idx": {
+          "name": "location_updates_timestamp_idx",
+          "columns": ["timestamp"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "location_updates_shift_id_shifts_id_fk": {
+          "name": "location_updates_shift_id_shifts_id_fk",
+          "tableFrom": "location_updates",
+          "tableTo": "shifts",
+          "columnsFrom": ["shift_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "location_updates_driver_id_users_id_fk": {
+          "name": "location_updates_driver_id_users_id_fk",
+          "tableFrom": "location_updates",
+          "tableTo": "users",
+          "columnsFrom": ["driver_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "maintenance_logs": {
+      "name": "maintenance_logs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "typeSchema": "",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "gen_random_uuid()"
+        },
+        "vehicle_id": {
+          "name": "vehicle_id",
+          "type": "uuid",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "performed_by": {
+          "name": "performed_by",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "performed_at": {
+          "name": "performed_at",
+          "type": "timestamp",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "cost": {
+          "name": "cost",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        }
+      },
+      "indexes": {
+        "maintenance_logs_vehicle_id_idx": {
+          "name": "maintenance_logs_vehicle_id_idx",
+          "columns": ["vehicle_id"],
+          "isUnique": false
+        },
+        "maintenance_logs_performed_at_idx": {
+          "name": "maintenance_logs_performed_at_idx",
+          "columns": ["performed_at"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "maintenance_logs_vehicle_id_vehicles_id_fk": {
+          "name": "maintenance_logs_vehicle_id_vehicles_id_fk",
+          "tableFrom": "maintenance_logs",
+          "tableTo": "vehicles",
+          "columnsFrom": ["vehicle_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "maintenance_logs_performed_by_users_id_fk": {
+          "name": "maintenance_logs_performed_by_users_id_fk",
+          "tableFrom": "maintenance_logs",
+          "tableTo": "users",
+          "columnsFrom": ["performed_by"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "alerts": {
+      "name": "alerts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "typeSchema": "",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "gen_random_uuid()"
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "message": {
+          "name": "message",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "payload": {
+          "name": "payload",
+          "type": "jsonb",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "now()"
+        },
+        "read_at": {
+          "name": "read_at",
+          "type": "timestamp",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        }
+      },
+      "indexes": {
+        "alerts_type_idx": {
+          "name": "alerts_type_idx",
+          "columns": ["type"],
+          "isUnique": false
+        },
+        "alerts_user_id_idx": {
+          "name": "alerts_user_id_idx",
+          "columns": ["user_id"],
+          "isUnique": false
+        },
+        "alerts_created_at_idx": {
+          "name": "alerts_created_at_idx",
+          "columns": ["created_at"],
+          "isUnique": false
+        },
+        "alerts_read_at_idx": {
+          "name": "alerts_read_at_idx",
+          "columns": ["read_at"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "alerts_user_id_users_id_fk": {
+          "name": "alerts_user_id_users_id_fk",
+          "tableFrom": "alerts",
+          "tableTo": "users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "maintenance_alerts": {
+      "name": "maintenance_alerts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "typeSchema": "",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "gen_random_uuid()"
+        },
+        "vehicle_id": {
+          "name": "vehicle_id",
+          "type": "uuid",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "alert_type": {
+          "name": "alert_type",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "threshold_km": {
+          "name": "threshold_km",
+          "type": "integer",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "current_km": {
+          "name": "current_km",
+          "type": "integer",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "message": {
+          "name": "message",
+          "type": "text",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": null
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "now()"
+        },
+        "resolved_at": {
+          "name": "resolved_at",
+          "type": "timestamp",
+          "typeSchema": "",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": null
+        }
+      },
+      "indexes": {
+        "maintenance_alerts_vehicle_id_idx": {
+          "name": "maintenance_alerts_vehicle_id_idx",
+          "columns": ["vehicle_id"],
+          "isUnique": false
+        },
+        "maintenance_alerts_alert_type_idx": {
+          "name": "maintenance_alerts_alert_type_idx",
+          "columns": ["alert_type"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "maintenance_alerts_vehicle_id_vehicles_id_fk": {
+          "name": "maintenance_alerts_vehicle_id_vehicles_id_fk",
+          "tableFrom": "maintenance_alerts",
+          "tableTo": "vehicles",
+          "columnsFrom": ["vehicle_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    }
+  },
+  "schemas": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
