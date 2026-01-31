@@ -37,26 +37,63 @@ async function request<T>(
     console.log('[API] Request body:', options.body);
   }
 
-  const response = await fetch(url, {
-    ...fetchOptions,
-    credentials: Platform.OS === 'web' ? 'include' : 'same-origin',
-    headers: {
-      'Content-Type': 'application/json',
-      ...fetchOptions.headers,
-    },
-  });
+  try {
+    const response = await fetch(url, {
+      ...fetchOptions,
+      credentials: Platform.OS === 'web' ? 'include' : 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        ...fetchOptions.headers,
+      },
+    });
 
-  console.log(`[API] Response status: ${response.status}`);
+    console.log(`[API] Response status: ${response.status}`);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`[API] Error response:`, errorText);
-    throw new Error(`API Error: ${response.status} - ${errorText}`);
+    if (!response.ok) {
+      let errorData;
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        errorData = await response.json();
+      } else {
+        errorData = await response.text();
+      }
+      
+      console.error(`[API] Error response:`, errorData);
+      
+      // Créer un message d'erreur plus descriptif
+      let errorMessage = `API Error: ${response.status}`;
+      
+      if (response.status === 404) {
+        errorMessage = 'Backend non disponible (404). Le serveur n\'existe pas ou l\'URL est incorrecte.';
+      } else if (response.status === 401) {
+        errorMessage = 'Non autorisé (401). Identifiants incorrects ou session expirée.';
+      } else if (response.status === 403) {
+        errorMessage = 'Accès refusé (403). Vous n\'avez pas les permissions nécessaires.';
+      } else if (response.status === 500) {
+        errorMessage = 'Erreur serveur (500). Le backend a rencontré une erreur.';
+      } else if (typeof errorData === 'object' && errorData.message) {
+        errorMessage = errorData.message;
+      } else if (typeof errorData === 'string') {
+        errorMessage = errorData;
+      }
+      
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    console.log('[API] Response data:', data);
+    return data;
+  } catch (error: any) {
+    // Gérer les erreurs réseau
+    if (error.message === 'Failed to fetch' || error.message === 'Network request failed') {
+      console.error('[API] Erreur réseau:', error);
+      throw new Error('Erreur réseau. Vérifiez votre connexion internet et que le backend est accessible.');
+    }
+    
+    // Propager l'erreur telle quelle si elle a déjà été formatée
+    throw error;
   }
-
-  const data = await response.json();
-  console.log('[API] Response data:', data);
-  return data;
 }
 
 async function authenticatedRequest<T>(

@@ -1,5 +1,4 @@
 
-import React, { ReactNode } from 'react';
 import {
   View,
   Text,
@@ -9,8 +8,9 @@ import {
   TouchableWithoutFeedback,
   ScrollView,
 } from 'react-native';
-import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
+import React, { ReactNode } from 'react';
+import { colors } from '@/styles/commonStyles';
 
 interface ModalProps {
   visible: boolean;
@@ -35,65 +35,21 @@ export default function Modal({
   cancelText = 'Annuler',
   onConfirm,
 }: ModalProps) {
-  const isConfirm = type === 'confirm';
-  const hasChildren = !!children;
-  
   const getIconColor = () => {
-    switch (type) {
-      case 'success':
-        return colors.success;
-      case 'error':
-        return colors.error;
-      case 'warning':
-        return colors.warning;
-      default:
-        return colors.primary;
-    }
+    const iconColorValue = type === 'success' ? colors.success : type === 'error' ? colors.error : type === 'warning' ? colors.warning : colors.primary;
+    return iconColorValue;
   };
 
   const handleConfirm = () => {
     if (onConfirm) {
       onConfirm();
+    } else {
+      onClose();
     }
-    onClose();
   };
 
-  // If children are provided, render a custom modal layout
-  if (hasChildren) {
-    return (
-      <RNModal
-        visible={visible}
-        transparent
-        animationType="slide"
-        onRequestClose={onClose}
-      >
-        <TouchableWithoutFeedback onPress={onClose}>
-          <View style={styles.overlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.customModalContainer}>
-                <View style={styles.customHeader}>
-                  <Text style={styles.customTitle}>{title}</Text>
-                  <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                    <IconSymbol
-                      ios_icon_name="xmark"
-                      android_material_icon_name="close"
-                      size={24}
-                      color={colors.text}
-                    />
-                  </TouchableOpacity>
-                </View>
-                <ScrollView style={styles.customContent}>
-                  {children}
-                </ScrollView>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </RNModal>
-    );
-  }
+  const iconColor = getIconColor();
 
-  // Default modal with message and buttons
   return (
     <RNModal
       visible={visible}
@@ -104,30 +60,60 @@ export default function Modal({
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.modalContainer}>
-              <View style={[styles.iconContainer, { backgroundColor: getIconColor() }]}>
-                <Text style={styles.iconText}>
-                  {type === 'success' ? '✓' : type === 'error' ? '✕' : type === 'warning' ? '⚠' : 'ℹ'}
-                </Text>
+            <View style={styles.modal}>
+              {/* Icon */}
+              <View style={[styles.iconContainer, { backgroundColor: iconColor + '20' }]}>
+                <IconSymbol
+                  ios_icon_name={
+                    type === 'success'
+                      ? 'checkmark.circle.fill'
+                      : type === 'error'
+                      ? 'xmark.circle.fill'
+                      : type === 'warning'
+                      ? 'exclamationmark.triangle.fill'
+                      : 'info.circle.fill'
+                  }
+                  android_material_icon_name={
+                    type === 'success'
+                      ? 'check-circle'
+                      : type === 'error'
+                      ? 'error'
+                      : type === 'warning'
+                      ? 'warning'
+                      : 'info'
+                  }
+                  size={48}
+                  color={iconColor}
+                />
               </View>
-              
-              <Text style={styles.title}>{title}</Text>
-              {message && <Text style={styles.message}>{message}</Text>}
 
-              <View style={styles.buttonContainer}>
-                {isConfirm && (
+              {/* Title */}
+              <Text style={styles.title}>{title}</Text>
+
+              {/* Message or Children */}
+              <ScrollView style={styles.contentScroll} contentContainerStyle={styles.contentScrollContainer}>
+                {message ? (
+                  <Text style={styles.message}>{message}</Text>
+                ) : (
+                  children
+                )}
+              </ScrollView>
+
+              {/* Buttons */}
+              <View style={styles.buttons}>
+                {type === 'confirm' && (
                   <TouchableOpacity
-                    style={[styles.button, styles.cancelButton]}
+                    style={[styles.button, styles.buttonSecondary]}
                     onPress={onClose}
                   >
-                    <Text style={styles.cancelButtonText}>{cancelText}</Text>
+                    <Text style={styles.buttonTextSecondary}>{cancelText}</Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
-                  style={[styles.button, styles.confirmButton, { backgroundColor: getIconColor() }]}
+                  style={[styles.button, styles.buttonPrimary]}
                   onPress={handleConfirm}
                 >
-                  <Text style={styles.confirmButtonText}>{confirmText}</Text>
+                  <Text style={styles.buttonTextPrimary}>{confirmText}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -144,96 +130,72 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 24,
   },
-  modalContainer: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
+  modal: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
     padding: 24,
     width: '100%',
     maxWidth: 400,
-    alignItems: 'center',
-  },
-  customModalContainer: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    width: '100%',
-    maxWidth: 500,
     maxHeight: '80%',
-    overflow: 'hidden',
-  },
-  customHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  customTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
-    flex: 1,
-  },
-  closeButton: {
-    padding: 4,
-  },
-  customContent: {
-    flex: 1,
+    boxShadow: '0px 10px 40px rgba(0, 0, 0, 0.3)',
   },
   iconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    alignSelf: 'center',
     marginBottom: 16,
-  },
-  iconText: {
-    fontSize: 32,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 12,
     textAlign: 'center',
+    marginBottom: 12,
+  },
+  contentScroll: {
+    maxHeight: 300,
+  },
+  contentScrollContainer: {
+    paddingBottom: 8,
   },
   message: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.textSecondary,
-    marginBottom: 24,
     textAlign: 'center',
     lineHeight: 22,
   },
-  buttonContainer: {
+  buttons: {
     flexDirection: 'row',
     gap: 12,
-    width: '100%',
+    marginTop: 24,
   },
   button: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
+    padding: 14,
+    borderRadius: 12,
     alignItems: 'center',
   },
-  cancelButton: {
-    backgroundColor: colors.background,
-  },
-  confirmButton: {
+  buttonPrimary: {
     backgroundColor: colors.primary,
   },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
+  buttonSecondary: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  confirmButtonText: {
+  buttonTextPrimary: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+  },
+  buttonTextSecondary: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

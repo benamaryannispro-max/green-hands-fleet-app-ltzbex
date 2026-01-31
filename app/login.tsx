@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   View,
   Text,
@@ -11,87 +12,102 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useState } from 'react';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/styles/commonStyles';
+import Modal from '@/components/ui/Modal';
+import { IconSymbol } from '@/components/IconSymbol';
+import Constants from 'expo-constants';
 
 export default function LoginScreen() {
+  const [leaderEmail, setLeaderEmail] = useState('contact@thegreenhands.fr');
+  const [leaderPassword, setLeaderPassword] = useState('Lagrandeteam13');
+  const [driverPhone, setDriverPhone] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [errorTitle, setErrorTitle] = useState('');
   const { loginLeader, loginDriver } = useAuth();
-  const [activeTab, setActiveTab] = useState<'leader' | 'driver'>('leader');
-  
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [phone, setPhone] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+
+  const backendUrl = Constants.expoConfig?.extra?.backendUrl || 'Non configuré';
 
   const handleLeaderLogin = async () => {
-    console.log('[LoginScreen] Tentative de connexion chef d\'équipe');
-    setError('');
-    
-    if (!email || !password) {
-      setError('Veuillez entrer votre email et mot de passe');
+    if (!leaderEmail || !leaderPassword) {
+      setErrorTitle('Champs requis');
+      setErrorMessage('Veuillez remplir tous les champs.');
+      setErrorModalVisible(true);
       return;
     }
 
-    setIsLoading(true);
-
+    console.log('[LoginScreen] Tentative de connexion chef d\'équipe');
+    setLoading(true);
     try {
-      await loginLeader(email, password);
-      console.log('[LoginScreen] Connexion réussie, redirection');
-      router.replace('/');
-    } catch (err: any) {
-      console.error('[LoginScreen] Erreur de connexion:', err);
-      const errorMessage = err.message || 'Échec de la connexion';
+      await loginLeader(leaderEmail, leaderPassword);
+      console.log('[LoginScreen] Connexion réussie, redirection...');
+      router.replace('/leader-dashboard');
+    } catch (error: any) {
+      console.error('[LoginScreen] Erreur de connexion:', error);
       
-      if (errorMessage.includes('401') || errorMessage.includes('incorrect') || errorMessage.includes('Invalid')) {
-        setError('❌ Email ou mot de passe incorrect.\n\n💡 Utilisez les identifiants de test ci-dessous.');
-      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-        setError('❌ Erreur de connexion au serveur.\n\n⏳ Le backend est peut-être en cours de démarrage. Attendez 30 secondes et réessayez.');
-      } else {
-        setError(`❌ ${errorMessage}`);
+      let title = 'Erreur de connexion';
+      let message = 'Une erreur est survenue lors de la connexion.';
+      
+      if (error.message?.includes('404') || error.message?.includes('not exist') || error.message?.includes('Backend non disponible')) {
+        title = '❌ Backend non disponible';
+        message = `Le serveur backend n'est pas accessible.\n\n🔧 URL du backend:\n${backendUrl}\n\n📋 Actions à effectuer:\n\n1. Vérifiez que le backend est déployé\n2. Vérifiez l'URL dans app.json\n3. Consultez LISEZ-MOI-URGENT.md\n4. Utilisez le bouton "Diagnostic" ci-dessous\n\nCode d'erreur: Backend introuvable (404)`;
+      } else if (error.message?.includes('401') || error.message?.includes('Unauthorized') || error.message?.includes('Non autorisé')) {
+        title = 'Identifiants incorrects';
+        message = 'L\'email ou le mot de passe est incorrect.';
+      } else if (error.message?.includes('Network') || error.message?.includes('réseau')) {
+        title = 'Erreur réseau';
+        message = 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
       }
+      
+      setErrorTitle(title);
+      setErrorMessage(message);
+      setErrorModalVisible(true);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const handleDriverLogin = async () => {
-    console.log('[LoginScreen] Tentative de connexion chauffeur');
-    setError('');
-    
-    if (!phone) {
-      setError('Veuillez entrer votre numéro de téléphone');
+    if (!driverPhone) {
+      setErrorTitle('Champ requis');
+      setErrorMessage('Veuillez entrer votre numéro de téléphone.');
+      setErrorModalVisible(true);
       return;
     }
 
-    setIsLoading(true);
-
+    console.log('[LoginScreen] Tentative de connexion chauffeur');
+    setLoading(true);
     try {
-      await loginDriver(phone);
-      console.log('[LoginScreen] Connexion réussie, redirection');
-      router.replace('/');
-    } catch (err: any) {
-      console.error('[LoginScreen] Erreur de connexion:', err);
-      const errorMessage = err.message || '';
+      await loginDriver(driverPhone);
+      console.log('[LoginScreen] Connexion réussie, redirection...');
+      router.replace('/driver-dashboard');
+    } catch (error: any) {
+      console.error('[LoginScreen] Erreur de connexion:', error);
       
-      if (errorMessage.includes('attente') || errorMessage.includes('pending')) {
-        setError('❌ Votre compte est en attente d\'approbation par un chef d\'équipe.');
-      } else if (errorMessage.includes('non reconnu') || errorMessage.includes('not found')) {
-        setError('❌ Numéro de téléphone non reconnu. Contactez votre chef d\'équipe.');
-      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-        setError('❌ Erreur de connexion au serveur.\n\n⏳ Le backend est peut-être en cours de démarrage. Attendez 30 secondes et réessayez.');
-      } else {
-        setError(`❌ ${errorMessage || 'Échec de la connexion'}`);
+      let title = 'Erreur de connexion';
+      let message = 'Une erreur est survenue lors de la connexion.';
+      
+      if (error.message?.includes('404') || error.message?.includes('not exist') || error.message?.includes('Backend non disponible')) {
+        title = '❌ Backend non disponible';
+        message = `Le serveur backend n'est pas accessible.\n\n🔧 URL du backend:\n${backendUrl}\n\n📋 Actions à effectuer:\n\n1. Vérifiez que le backend est déployé\n2. Vérifiez l'URL dans app.json\n3. Consultez LISEZ-MOI-URGENT.md\n4. Utilisez le bouton "Diagnostic" ci-dessous\n\nCode d'erreur: Backend introuvable (404)`;
+      } else if (error.message?.includes('401') || error.message?.includes('Unauthorized') || error.message?.includes('Non autorisé')) {
+        title = 'Accès refusé';
+        message = 'Votre compte n\'est pas approuvé ou n\'existe pas. Contactez votre chef d\'équipe.';
+      } else if (error.message?.includes('Network') || error.message?.includes('réseau')) {
+        title = 'Erreur réseau';
+        message = 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
       }
+      
+      setErrorTitle(title);
+      setErrorMessage(message);
+      setErrorModalVisible(true);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
-
-  const leaderTabActive = activeTab === 'leader';
-  const driverTabActive = activeTab === 'driver';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -103,140 +119,113 @@ export default function LoginScreen() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.content}>
-            <View style={styles.header}>
-              <Text style={styles.title}>GREEN HANDS</Text>
-              <Text style={styles.subtitle}>Gestion de flotte</Text>
-            </View>
-
-            {error ? (
-              <View style={styles.errorContainer}>
-                <Text style={styles.error}>{error}</Text>
-              </View>
-            ) : null}
-
-            <View style={styles.tabContainer}>
-              <TouchableOpacity
-                style={[styles.tab, leaderTabActive && styles.tabActive]}
-                onPress={() => {
-                  setActiveTab('leader');
-                  setError('');
-                }}
-              >
-                <Text style={[styles.tabText, leaderTabActive && styles.tabTextActive]}>
-                  Chef d&apos;équipe
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.tab, driverTabActive && styles.tabActive]}
-                onPress={() => {
-                  setActiveTab('driver');
-                  setError('');
-                }}
-              >
-                <Text style={[styles.tabText, driverTabActive && styles.tabTextActive]}>
-                  Chauffeur
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {leaderTabActive ? (
-              <View style={styles.form}>
-                <Text style={styles.formTitle}>Connexion Chef d&apos;équipe</Text>
-
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email"
-                  placeholderTextColor={colors.grey}
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  editable={!isLoading}
-                />
-
-                <TextInput
-                  style={styles.input}
-                  placeholder="Mot de passe"
-                  placeholderTextColor={colors.grey}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  editable={!isLoading}
-                />
-
-                <TouchableOpacity
-                  style={[styles.button, isLoading && styles.buttonDisabled]}
-                  onPress={handleLeaderLogin}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={styles.buttonText}>Se connecter</Text>
-                  )}
-                </TouchableOpacity>
-
-                <View style={styles.testCredentialsContainer}>
-                  <Text style={styles.testCredentialsTitle}>🔑 Identifiants de test :</Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setEmail('contact@thegreenhands.fr');
-                      setPassword('Lagrandeteam13');
-                    }}
-                    style={styles.autofillButton}
-                  >
-                    <Text style={styles.autofillButtonText}>📋 Remplir automatiquement</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.testCredentials}>
-                    Email: contact@thegreenhands.fr
-                  </Text>
-                  <Text style={styles.testCredentials}>
-                    Mot de passe: Lagrandeteam13
-                  </Text>
-                  <Text style={styles.testCredentialsNote}>
-                    ✅ Un utilisateur de test est créé automatiquement au démarrage du serveur.
-                  </Text>
-                  <Text style={styles.testCredentialsNote}>
-                    ⏳ Si la connexion échoue, le backend est peut-être en cours de démarrage. Attendez 30 secondes et réessayez.
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.form}>
-                <Text style={styles.formTitle}>Connexion Chauffeur</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Numéro de téléphone (+33...)"
-                  placeholderTextColor={colors.grey}
-                  value={phone}
-                  onChangeText={setPhone}
-                  keyboardType="phone-pad"
-                  editable={!isLoading}
-                />
-
-                <TouchableOpacity
-                  style={[styles.button, isLoading && styles.buttonDisabled]}
-                  onPress={handleDriverLogin}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={styles.buttonText}>Se connecter</Text>
-                  )}
-                </TouchableOpacity>
-
-                <View style={styles.driverNoteContainer}>
-                  <Text style={styles.driverNote}>
-                    ℹ️ Note: Vous devez être approuvé par un chef d&apos;équipe pour accéder à l&apos;application.
-                  </Text>
-                </View>
-              </View>
-            )}
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>GREEN HANDS</Text>
+            <Text style={styles.subtitle}>Gestion de flotte</Text>
           </View>
+
+          {/* Leader Login Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>👔 Connexion Chef d'équipe</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor={colors.textSecondary}
+              value={leaderEmail}
+              onChangeText={setLeaderEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              editable={!loading}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Mot de passe"
+              placeholderTextColor={colors.textSecondary}
+              value={leaderPassword}
+              onChangeText={setLeaderPassword}
+              secureTextEntry
+              editable={!loading}
+            />
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleLeaderLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Se connecter</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OU</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Driver Login Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>🚗 Connexion Chauffeur</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Numéro de téléphone (+33...)"
+              placeholderTextColor={colors.textSecondary}
+              value={driverPhone}
+              onChangeText={setDriverPhone}
+              keyboardType="phone-pad"
+              editable={!loading}
+            />
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleDriverLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Se connecter</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Backend Status */}
+          <View style={styles.statusContainer}>
+            <Text style={styles.statusLabel}>🔧 Serveur backend:</Text>
+            <Text style={styles.statusUrl} numberOfLines={2}>
+              {backendUrl}
+            </Text>
+          </View>
+
+          {/* Diagnostic Button */}
+          <TouchableOpacity
+            style={styles.diagnosticButton}
+            onPress={() => router.push('/diagnostic')}
+          >
+            <IconSymbol
+              ios_icon_name="stethoscope"
+              android_material_icon_name="healing"
+              size={20}
+              color={colors.primary}
+            />
+            <Text style={styles.diagnosticButtonText}>Lancer le diagnostic</Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Error Modal */}
+      <Modal
+        visible={errorModalVisible}
+        onClose={() => setErrorModalVisible(false)}
+        title={errorTitle}
+        message={errorMessage}
+        type="error"
+        confirmText="OK"
+        onConfirm={() => setErrorModalVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -251,80 +240,45 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    padding: 24,
     justifyContent: 'center',
-    padding: 20,
-  },
-  content: {
-    width: '100%',
-    maxWidth: 400,
-    alignSelf: 'center',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 48,
   },
   title: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: 'bold',
     color: colors.primary,
     marginBottom: 8,
-    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
     color: colors.textSecondary,
-    textAlign: 'center',
   },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 4,
+  section: {
     marginBottom: 24,
   },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  tabActive: {
-    backgroundColor: colors.primary,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  tabTextActive: {
-    color: '#FFFFFF',
-  },
-  form: {
-    width: '100%',
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 20,
-  },
-  formTitle: {
+  sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 16,
-    textAlign: 'center',
   },
   input: {
-    backgroundColor: colors.background,
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
     fontSize: 16,
     color: colors.text,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.border,
   },
   button: {
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     marginTop: 8,
@@ -333,77 +287,60 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
-  errorContainer: {
-    backgroundColor: '#FEE2E2',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 32,
   },
-  error: {
-    color: '#DC2626',
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    color: colors.textSecondary,
     fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
+    fontWeight: '600',
   },
-  testCredentialsContainer: {
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: colors.background,
-    borderRadius: 8,
+  statusContainer: {
+    marginTop: 32,
+    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  testCredentialsTitle: {
-    fontSize: 13,
+  statusLabel: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 6,
-    textAlign: 'center',
+    marginBottom: 8,
   },
-  testCredentials: {
+  statusUrl: {
     fontSize: 12,
     color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 2,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
-  testCredentialsNote: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 8,
-    fontStyle: 'italic',
-    lineHeight: 16,
-  },
-  autofillButton: {
-    backgroundColor: colors.accent,
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  autofillButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  driverNoteContainer: {
+  diagnosticButton: {
     marginTop: 16,
-    padding: 12,
-    backgroundColor: colors.background,
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 14,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.primary,
+    gap: 8,
   },
-  driverNote: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 18,
+  diagnosticButtonText: {
+    color: colors.primary,
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
